@@ -1,0 +1,104 @@
+# ─── Node.js ──────────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+dist/
+build/
+.cache/
+
+# ─── Environment Variables ────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.nox/
+.coverage
+.coverage.*
+.pytest_cache/
+htmlcov/
+*.egg-info/
+dist/
+*.egg
+MANIFEST
+
+# ─── Python Virtual Environments ─────────────────────────────────────────────
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# ─── ML Model Checkpoints & Weights (large binary files) ─────────────────────
+*.pth
+*.pt
+*.ckpt
+*.h5
+*.pkl
+*.bin
+*.safetensors
+*.onnx
+*.pb
+
+# ZIP archives of model weights
+*.pth.zip
+*.pt.zip
+gait_best .pth.zip
+pa100k_last.pth .zip
+
+# Model folders (unzipped checkpoint directories)
+gait_best .pth/
+pa100k_last.pth/
+ml-service/gait_best/
+ml-service/pa100k_last/
+
+# ─── Uploads (user-submitted probe/gallery images) ───────────────────────────
+backend/uploads/
+uploads/
+
+# ─── Stray image files in root ───────────────────────────────────────────────
+*.jpeg
+*.jpg
+*.png
+!README_assets/
+
+# ─── IDE & Editors ───────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+
+# ─── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+logs/
+*.log
+
+# ─── Agent / AI tooling internals ────────────────────────────────────────────
+.qodo/
