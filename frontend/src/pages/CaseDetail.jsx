@@ -111,6 +111,7 @@ const CaseDetail = () => {
               [<FiUser />, 'Age / Gender', `${caseData.age || '?'} / ${caseData.gender}`],
               [<FiUser />, 'Build', `${caseData.height || '?'} · ${caseData.weight || '?'}`],
               [<FiMapPin />, 'Last Seen', caseData.lastSeenLocation || '—'],
+              [<FiMapPin />, 'Coordinates', caseData.lastSeenCoordinates?.lat != null ? `${caseData.lastSeenCoordinates.lat.toFixed(4)}, ${caseData.lastSeenCoordinates.lng.toFixed(4)}` : '—'],
               [<FiCalendar />, 'Last Seen Date', caseData.lastSeenDate ? new Date(caseData.lastSeenDate).toLocaleDateString() : '—'],
               [<FiEdit3 />, 'Description', caseData.description || '—']
             ].map(([icon, label, value], i) => (
@@ -145,24 +146,28 @@ const CaseDetail = () => {
             <h4 style={{ marginBottom: 16, fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}><FiActivity /> PA-100K Attributes</h4>
 
             {caseData.attributes ? (
-              /* ── Attributes loaded ─────────────────────────────────────── */
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {Object.entries(caseData.attributes)
-                  .filter(([k]) => k !== 'raw' && k !== 'confidence')
-                  .map(([k, v]) => (
-                    <div key={k}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                        <span style={{ color: 'var(--text-muted)', textTransform: 'capitalize' }}>
-                          {k.replace(/([A-Z])/g, ' $1').trim()}
-                        </span>
-                        <span style={{ color: 'var(--text)', fontWeight: 500 }}>
-                          {typeof v === 'boolean' ? (v ? '✓ Yes' : '✗ No') : String(v)}
-                        </span>
-                      </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {/* Key Attributes Summary */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {[
+                    ['Gender', caseData.attributes.gender],
+                    ['Age', caseData.attributes.age],
+                    ['Upper', caseData.attributes.upperBodyClothing],
+                    ['Lower', caseData.attributes.lowerBodyClothing],
+                    ['Hat', caseData.attributes.hasHat ? '✓ Yes' : '✗ No'],
+                    ['Glasses', caseData.attributes.hasGlasses ? '✓ Yes' : '✗ No'],
+                    ['Bag', caseData.attributes.hasBag ? '✓ Yes' : '✗ No'],
+                    ['Boots', caseData.attributes.bodyShape === 'Boots' ? '✓ Yes' : '✗ No'],
+                  ].map(([k, v]) => (
+                    <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 8px', background: 'var(--surface-2)', borderRadius: 6 }}>
+                      <span style={{ color: 'var(--text-muted)' }}>{k}</span>
+                      <span style={{ fontWeight: 600 }}>{v || 'Unknown'}</span>
                     </div>
-                  ))
-                }
-                <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
+                  ))}
+                </div>
+
+                {/* Confidence bar */}
+                <div style={{ paddingTop: 8, borderTop: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                     <span style={{ color: 'var(--text-muted)' }}>Confidence</span>
                     <span style={{ color: 'var(--success)', fontWeight: 600 }}>{Math.round((caseData.attributes.confidence || 0) * 100)}%</span>
@@ -171,6 +176,41 @@ const CaseDetail = () => {
                     <div style={{ height: '100%', width: `${(caseData.attributes.confidence || 0) * 100}%`, background: 'var(--success)', borderRadius: 3, transition: 'width 0.6s ease' }} />
                   </div>
                 </div>
+
+                {/* All 26 Raw Predictions with bars */}
+                {caseData.attributes.raw && Object.keys(caseData.attributes.raw).length > 0 && (
+                  <div style={{ paddingTop: 8, borderTop: '1px solid var(--border)' }}>
+                    <h5 style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 10 }}>All 26 Attribute Predictions</h5>
+                    {(() => {
+                      const raw = caseData.attributes.raw;
+                      const groups = [
+                        { name: 'Demographics', keys: ['Female', 'AgeOver60', 'Age18-60', 'AgeLess18'], color: '#6366f1' },
+                        { name: 'Orientation', keys: ['Front', 'Side', 'Back'], color: '#06b6d4' },
+                        { name: 'Accessories', keys: ['Hat', 'Glasses', 'HandBag', 'ShoulderBag', 'Backpack', 'HoldObjectsInFront'], color: '#f59e0b' },
+                        { name: 'Upper Body', keys: ['ShortSleeve', 'LongSleeve', 'UpperStride', 'UpperLogo', 'UpperPlaid', 'UpperSplice'], color: '#22c55e' },
+                        { name: 'Lower Body', keys: ['LowerStripe', 'LowerPattern', 'LongCoat', 'Trousers', 'Shorts', 'Skirt&Dress', 'boots'], color: '#f97316' },
+                      ];
+                      return groups.map(g => (
+                        <div key={g.name} style={{ marginBottom: 10 }}>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: g.color, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>{g.name}</div>
+                          {g.keys.filter(k => raw[k] !== undefined).map(k => {
+                            const prob = raw[k];
+                            const pct = Math.round(prob * 100);
+                            return (
+                              <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                                <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 110, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{k}</span>
+                                <div style={{ flex: 1, height: 5, background: 'var(--surface-2)', borderRadius: 3 }}>
+                                  <div style={{ height: '100%', width: `${pct}%`, background: prob > 0.5 ? g.color : 'var(--text-muted)', borderRadius: 3, opacity: prob > 0.5 ? 1 : 0.4, transition: 'width 0.4s ease' }} />
+                                </div>
+                                <span style={{ fontSize: 10, fontWeight: 600, color: prob > 0.5 ? g.color : 'var(--text-muted)', width: 32, textAlign: 'right' }}>{pct}%</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                )}
               </div>
 
             ) : caseData.photos?.length > 0 ? (
@@ -189,10 +229,8 @@ const CaseDetail = () => {
                   AI Analysis in Progress
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14 }}>
-                  PA-100K ResNet50 is extracting attributes…
+                  PA-100K ResNet50 is extracting 26 attributes…
                 </div>
-
-                {/* Animated progress dots */}
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 5, marginBottom: 10 }}>
                   {[0, 1, 2].map(i => (
                     <div key={i} style={{
@@ -202,7 +240,6 @@ const CaseDetail = () => {
                     }} />
                   ))}
                 </div>
-
                 {pollCount > 0 && pollCount < MAX_POLL && (
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', opacity: 0.7 }}>
                     Checking… ({pollCount}/{MAX_POLL})
@@ -213,7 +250,6 @@ const CaseDetail = () => {
                     Still processing — refresh the page in a moment
                   </div>
                 )}
-
                 <style>{`
                   @keyframes pulse {
                     0%, 100% { transform: scale(1); opacity: 1; }
@@ -235,43 +271,47 @@ const CaseDetail = () => {
             )}
           </div>
 
-          {/* Re-ID Embedding Visualization */}
+          {/* OSNet Re-ID Embedding Visualization */}
           <div className="card" style={{ padding: 20 }}>
-            <h4 style={{ marginBottom: 14, fontSize: 14, fontWeight: 600 }}>OSNet Re-ID Embedding</h4>
+            <h4 style={{ marginBottom: 14, fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <FiCpu /> OSNet Re-ID Embedding
+              {embedding.length > 0 && <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>({embedding.length}-dim)</span>}
+            </h4>
             {embedding.length > 0 ? (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                {embedding.map((v, i) => {
-                  const norm = Math.abs(v) / 2;
-                  return (
-                    <div key={i} style={{
-                      width: 8, height: 8, borderRadius: 2,
-                      background: v > 0 ? `rgba(99,102,241,${Math.min(norm, 1)})` : `rgba(239,68,68,${Math.min(norm, 1)})`,
-                      title: v.toFixed(3)
-                    }} />
-                  );
-                })}
+              <div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, marginBottom: 10 }}>
+                  {embedding.map((v, i) => {
+                    const norm = Math.abs(v) / 2;
+                    return (
+                      <div key={i} style={{
+                        width: 8, height: 8, borderRadius: 2,
+                        background: v > 0 ? `rgba(99,102,241,${Math.min(norm, 1)})` : `rgba(239,68,68,${Math.min(norm, 1)})`,
+                        title: `dim[${i}]: ${v.toFixed(4)}`
+                      }} />
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                  L2-normalized vector for cross-camera person matching
+                </div>
               </div>
             ) : (
               <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No Re-ID embedding available yet</p>
             )}
           </div>
 
-          {/* Gait */}
+          {/* Gait — Future Scope */}
           <div className="card" style={{ padding: 20 }}>
-            <h4 style={{ marginBottom: 14, fontSize: 14, fontWeight: 600 }}>Gait Signature</h4>
-            {caseData.gaitScore != null ? (
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Gait Score</span>
-                  <span style={{ fontWeight: 600 }}>{(caseData.gaitScore * 100).toFixed(1)}%</span>
-                </div>
-                <div style={{ height: 8, background: 'var(--surface-2)', borderRadius: 4 }}>
-                  <div style={{ height: '100%', width: `${caseData.gaitScore * 100}%`, background: 'linear-gradient(90deg,#6366f1,#8b5cf6)', borderRadius: 4 }} />
-                </div>
+            <h4 style={{ marginBottom: 14, fontSize: 14, fontWeight: 600 }}>Gait Analysis</h4>
+            <div style={{ padding: '16px 12px', background: 'var(--surface-2)', borderRadius: 10, textAlign: 'center' }}>
+              <div style={{ fontSize: 24, marginBottom: 8 }}>🚶</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Future Scope</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                Gait analysis requires walking video sequences for reliable recognition.
+                Single images cannot capture gait patterns.
               </div>
-            ) : (
-              <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Gait analysis not available (requires video input)</p>
-            )}
+              <div style={{ marginTop: 10, fontSize: 11, color: 'var(--accent)', fontWeight: 500 }}>Planned for future release</div>
+            </div>
           </div>
         </div>
       </div>

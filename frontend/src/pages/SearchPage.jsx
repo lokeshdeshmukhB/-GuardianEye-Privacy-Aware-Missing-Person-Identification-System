@@ -4,10 +4,10 @@ import { FiUploadCloud, FiSearch, FiUser, FiMapPin, FiClock, FiX } from 'react-i
 import { searchPersons } from '../services/api';
 
 const MODES = [
-  { id: 'multi-modal', label: 'Multi-Modal', desc: 'Attributes + Re-ID + Gait' },
-  { id: 'reid', label: 'Re-ID Only', desc: 'OSNet embedding match' },
+  { id: 'multi-modal', label: 'Multi-Modal', desc: 'Re-ID + Attributes + Location' },
+  { id: 'reid', label: 'Re-ID Only', desc: 'OSNet 512-dim embedding match' },
   { id: 'attribute', label: 'Attributes', desc: 'PA-100K recognition' },
-  { id: 'gait', label: 'Gait', desc: 'Silhouette analysis' }
+  { id: 'location', label: 'Location', desc: 'Coordinate proximity match' }
 ];
 
 const SearchPage = () => {
@@ -17,10 +17,13 @@ const SearchPage = () => {
   const [preview, setPreview] = useState('');
   const [mode, setMode] = useState('multi-modal');
   const [results, setResults] = useState([]);
+  const [probeAttrs, setProbeAttrs] = useState(null);
   const [loading, setLoading] = useState(false);
   const [stage, setStage] = useState('');
   const [error, setError] = useState('');
   const [searched, setSearched] = useState(false);
+  const [searchLat, setSearchLat] = useState('');
+  const [searchLng, setSearchLng] = useState('');
 
   const handleFile = (file) => {
     if (!file) return;
@@ -30,8 +33,8 @@ const SearchPage = () => {
 
   const handleSearch = async () => {
     if (!probe) { setError('Please upload a probe image'); return; }
-    setLoading(true); setError(''); setResults([]); setSearched(false);
-    const stages = ['Extracting attributes…', 'Computing Re-ID embedding…', 'Gait analysis…', 'Fusing scores…'];
+    setLoading(true); setError(''); setResults([]); setSearched(false); setProbeAttrs(null);
+    const stages = ['Extracting PA-100K attributes…', 'Computing OSNet Re-ID embedding…', 'Scoring location proximity…', 'Fusing scores…'];
     for (const s of stages) {
       setStage(s);
       await new Promise(r => setTimeout(r, 500));
@@ -40,8 +43,11 @@ const SearchPage = () => {
       const fd = new FormData();
       fd.append('probe', probe);
       fd.append('searchType', mode);
+      if (searchLat) fd.append('searchLat', searchLat);
+      if (searchLng) fd.append('searchLng', searchLng);
       const { data } = await searchPersons(fd);
       setResults(data.results || []);
+      setProbeAttrs(data.probeAttributes || null);
       setSearched(true);
     } catch (err) {
       setError(err.response?.data?.message || 'Search failed. Make sure the backend is running.');
@@ -105,6 +111,24 @@ const SearchPage = () => {
             ))}
           </div>
 
+          {/* Location Input */}
+          <div className="card" style={{ padding: 20 }}>
+            <h4 style={{ marginBottom: 14, fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><FiMapPin /> Search Location</h4>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div>
+                <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Latitude</label>
+                <input type="number" step="any" value={searchLat} onChange={e => setSearchLat(e.target.value)}
+                  placeholder="e.g. 28.6139" style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text)', fontSize: 13 }} />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Longitude</label>
+                <input type="number" step="any" value={searchLng} onChange={e => setSearchLng(e.target.value)}
+                  placeholder="e.g. 77.2090" style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text)', fontSize: 13 }} />
+              </div>
+            </div>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>Optional: enter last known coordinates to boost nearby matches</p>
+          </div>
+
           {error && <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--danger)', padding: '10px 14px', borderRadius: 8, fontSize: 13 }}>{error}</div>}
 
           <button className="btn-primary" onClick={handleSearch} disabled={loading || !probe}
@@ -159,8 +183,7 @@ const SearchPage = () => {
                       <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
                         <FiClock style={{ fontSize: 10 }} /> {r.caseId}
                       </div>
-                      {/* Display individual scores if available */}
-                      {(r.reidScore !== undefined || r.attributeScore !== undefined || r.gaitScore !== undefined) && (
+                      {(r.reidScore !== undefined || r.attributeScore !== undefined || r.locationScore !== undefined) && (
                         <div style={{ marginTop: 10, fontSize: 11, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                           {r.reidScore !== undefined && (
                             <div style={{ background: 'rgba(99,102,241,0.1)', padding: '4px 8px', borderRadius: 4 }}>
@@ -174,10 +197,13 @@ const SearchPage = () => {
                               <div style={{ fontWeight: 600, color: '#22c55e' }}>{Math.round(r.attributeScore * 100)}%</div>
                             </div>
                           )}
-                          {r.gaitScore !== undefined && (
+                          {r.locationScore !== undefined && r.locationScore > 0 && (
                             <div style={{ background: 'rgba(249,115,22,0.1)', padding: '4px 8px', borderRadius: 4 }}>
-                              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>Gait</div>
-                              <div style={{ fontWeight: 600, color: '#f97316' }}>{Math.round(r.gaitScore * 100)}%</div>
+                              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>Location</div>
+                              <div style={{ fontWeight: 600, color: '#f97316' }}>
+                                {Math.round(r.locationScore * 100)}%
+                                {r.distanceKm != null && <span style={{ fontSize: 9, fontWeight: 400, marginLeft: 3 }}>({r.distanceKm}km)</span>}
+                              </div>
                             </div>
                           )}
                           {r.fusionScore !== undefined && (
@@ -192,6 +218,49 @@ const SearchPage = () => {
                   </div>
                 ))}
               </div>
+
+              {/* Probe Attributes Panel */}
+              {probeAttrs && (
+                <div className="card" style={{ marginTop: 20, padding: 20 }}>
+                  <h4 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    🔍 Probe Image — PA-100K Analysis
+                  </h4>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+                    {[
+                      ['Gender', probeAttrs.gender],
+                      ['Age', probeAttrs.age],
+                      ['Upper', probeAttrs.upperBodyClothing],
+                      ['Lower', probeAttrs.lowerBodyClothing],
+                      ['Hat', probeAttrs.hasHat ? '✓' : '✗'],
+                      ['Glasses', probeAttrs.hasGlasses ? '✓' : '✗'],
+                      ['Bag', probeAttrs.hasBag ? '✓' : '✗'],
+                    ].filter(([, v]) => v).map(([k, v]) => (
+                      <span key={k} style={{ fontSize: 12, padding: '3px 10px', borderRadius: 6, background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', color: 'var(--text)' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>{k}:</span> <strong>{v}</strong>
+                      </span>
+                    ))}
+                    {probeAttrs.confidence !== undefined && (
+                      <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 6, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#22c55e', fontWeight: 600 }}>
+                        Confidence: {Math.round(probeAttrs.confidence * 100)}%
+                      </span>
+                    )}
+                  </div>
+                  {probeAttrs.raw && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 4, fontSize: 11 }}>
+                      {Object.entries(probeAttrs.raw).map(([k, v]) => {
+                        const pct = Math.round(v * 100);
+                        return (
+                          <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0' }}>
+                            <span style={{ color: v > 0.5 ? '#22c55e' : 'var(--text-muted)', width: 10, fontWeight: 700 }}>{v > 0.5 ? '✓' : '·'}</span>
+                            <span style={{ color: 'var(--text-muted)', flex: 1 }}>{k}</span>
+                            <span style={{ fontWeight: 600, color: v > 0.5 ? 'var(--text)' : 'var(--text-muted)', opacity: v > 0.5 ? 1 : 0.5 }}>{pct}%</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
         </div>

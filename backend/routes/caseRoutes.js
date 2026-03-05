@@ -41,13 +41,18 @@ router.get('/:id', protect, async (req, res) => {
 // POST /api/cases – create new case + fire-and-forget ML extraction
 router.post('/', protect, upload.array('photos', 5), async (req, res) => {
   try {
-    const { name, age, gender, height, weight, lastSeenDate, lastSeenLocation, description } = req.body;
+    const { name, age, gender, height, weight, lastSeenDate, lastSeenLocation, lastSeenLat, lastSeenLng, description } = req.body;
     const caseId = `MP-${new Date().getFullYear()}-${uuidv4().split('-')[0].toUpperCase()}`;
     const photos = req.files ? req.files.map(f => `/uploads/${f.filename}`) : [];
 
+    // Parse coordinates if provided
+    const lastSeenCoordinates = (lastSeenLat && lastSeenLng)
+      ? { lat: parseFloat(lastSeenLat), lng: parseFloat(lastSeenLng) }
+      : undefined;
+
     const newCase = await MissingPerson.create({
       caseId, name, age, gender, height, weight,
-      lastSeenDate, lastSeenLocation, description,
+      lastSeenDate, lastSeenLocation, lastSeenCoordinates, description,
       reportedBy: req.user._id,
       photos,
       thumbnailUrl: photos[0] || null,
@@ -67,39 +72,68 @@ router.post('/', protect, upload.array('photos', 5), async (req, res) => {
   }
 });
 
-// ── ML feature extraction (attributes + reid + gait) ──────────────────────
+// ── ML feature extraction (attributes + osnet reid) ───────────────────────
 async function _extractMLFeatures(docId, imagePath) {
   const ML_URL = process.env.ML_SERVICE_URL || 'http://127.0.0.1:8000';
   const FormData = require('form-data');
 
-  // 1) Attributes + Re-ID embedding
-  const attrForm = new FormData();
-  attrForm.append('image', fs.createReadStream(imagePath));
-  const attrRes = await axios.post(`${ML_URL}/api/attributes`, attrForm, {
-    headers: attrForm.getHeaders(),
-    timeout: 60000,
-  });
-
   const updates = {};
-  if (attrRes.data.attributes) updates.attributes    = attrRes.data.attributes;
-  if (attrRes.data.embedding)  updates.reidEmbedding = attrRes.data.embedding;
 
-  // 2) Gait signature
+  // 1) PA-100K Attributes
   try {
-    const gaitForm = new FormData();
-    gaitForm.append('image', fs.createReadStream(imagePath));
-    const gaitRes = await axios.post(`${ML_URL}/api/gait`, gaitForm, {
-      headers: gaitForm.getHeaders(),
-      timeout: 30000,
+    const attrForm = new FormData();
+    attrForm.append('image', fs.createReadStream(imagePath));
+    const attrRes = await axios.post(`${ML_URL}/api/attributes`, attrForm, {
+      headers: attrForm.getHeaders(),
+      timeout: 60000,
     });
-    if (gaitRes.data.gaitSignature) updates.gaitSignature = gaitRes.data.gaitSignature;
-    if (gaitRes.data.gaitScore)     updates.gaitScore     = gaitRes.data.gaitScore;
-  } catch (e) {
-    console.warn('[ML] Gait extraction error:', e.message);
+
+    const mlAttrs = attrRes.data.attributes || {};
+
+    updates.attributes = {
+      gender: mlAttrs.gender || 'Unknown',
+      age: mlAttrs.age || 'Unknown',
+      upperBodyClothing: mlAttrs.upperBodyClothing || 'Unknown',
+      lowerBodyClothing: mlAttrs.lowerBodyClothing || 'Unknown',
+      upperBodyColor: mlAttrs.upperBodyPattern || 'Unknown',
+      lowerBodyColor: mlAttrs.lowerBodyPattern || 'Unknown',
+      hasBag: mlAttrs.hasBag || false,
+      hasHat: mlAttrs.hasHat || false,
+      hasGlasses: mlAttrs.hasGlasses || false,
+      hairLength: mlAttrs.orientation || 'Unknown',
+      bodyShape: mlAttrs.wearingBoots ? 'Boots' : 'Regular',
+      confidence: mlAttrs.confidence || 0,
+      raw: attrRes.data.raw_predictions || mlAttrs.raw || {},
+    };
+
+    console.log(`[ML] Attributes extracted: gender=${updates.attributes.gender}, confidence=${updates.attributes.confidence}`);
+  } catch (attrErr) {
+    console.warn('[ML] Attribute extraction error:', attrErr.message);
   }
 
-  await MissingPerson.findByIdAndUpdate(docId, updates);
-  console.log(`[ML] Features saved for case docId=${docId}`);
+  // 2) OSNet Re-ID embedding (512-dim)
+  try {
+    const reidForm = new FormData();
+    reidForm.append('image', fs.createReadStream(imagePath));
+    const reidRes = await axios.post(`${ML_URL}/api/reid`, reidForm, {
+      headers: reidForm.getHeaders(),
+      timeout: 30000,
+    });
+    if (reidRes.data.embedding && reidRes.data.embedding.length > 0) {
+      updates.reidEmbedding = reidRes.data.embedding;
+      console.log(`[ML] OSNet Re-ID embedding extracted (${reidRes.data.dim}-dim)`);
+    }
+  } catch (reidErr) {
+    console.warn('[ML] Re-ID extraction error:', reidErr.message);
+  }
+
+  // 3) Gait — currently returns unavailable (future scope: needs video)
+  // Not calling gait endpoint since it requires video input
+
+  if (Object.keys(updates).length > 0) {
+    await MissingPerson.findByIdAndUpdate(docId, updates);
+    console.log(`[ML] Features saved for case docId=${docId}`);
+  }
 }
 
 // PATCH /api/cases/:id/status

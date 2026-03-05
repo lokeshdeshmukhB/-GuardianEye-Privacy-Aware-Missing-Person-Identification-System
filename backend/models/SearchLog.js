@@ -5,7 +5,7 @@ const searchLogSchema = new mongoose.Schema({
   officerName: String,
   searchType: {
     type: String,
-    enum: ["multi-modal", "reid", "attribute", "gait"],
+    enum: ["multi-modal", "reid", "attribute", "location"],
     default: "multi-modal",
   },
   queryImagePath: String,

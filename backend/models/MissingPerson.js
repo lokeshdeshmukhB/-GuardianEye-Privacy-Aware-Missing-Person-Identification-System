@@ -9,6 +9,10 @@ const missingPersonSchema = new mongoose.Schema({
   weight: { type: String },
   lastSeenDate: { type: Date },
   lastSeenLocation: { type: String },
+  lastSeenCoordinates: {
+    lat: { type: Number },
+    lng: { type: Number }
+  },
   description: { type: String },
   reportedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   status: {
@@ -36,10 +40,10 @@ const missingPersonSchema = new mongoose.Schema({
     raw: mongoose.Schema.Types.Mixed
   },
 
-  // Re-ID embedding (OSNet)
+  // Re-ID embedding (OSNet 512-dim)
   reidEmbedding: [Number],
 
-  // Gait signature
+  // Gait signature (future scope — requires video input)
   gaitSignature: [Number],
   gaitScore: Number,
 

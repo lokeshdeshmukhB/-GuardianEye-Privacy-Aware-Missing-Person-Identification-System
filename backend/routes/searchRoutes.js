@@ -21,72 +21,157 @@ function cosineSim(a, b) {
   return dot / (Math.sqrt(na) * Math.sqrt(nb) + 1e-8);
 }
 
+// ── Haversine distance (km) between two lat/lng points ─────────────────────
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371; // Earth radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// ── Convert distance to a 0-1 score (closer = higher score) ───────────────
+function coordinateScore(dist) {
+  // 0 km → 1.0, 5 km → ~0.5, 50 km → ~0.09
+  if (dist == null || isNaN(dist)) return 0;
+  return 1 / (1 + dist / 5);
+}
+
 // POST /api/search – multi-modal search with real cosine similarity ranking
 router.post("/", protect, upload.single("probe"), async (req, res) => {
   const startTime = Date.now();
   try {
-    const { searchType = "multi-modal" } = req.body;
+    const { searchType = "multi-modal", searchLat, searchLng } = req.body;
 
-    // Step 1: get probe Re-ID embedding from ML service
+    // Step 1: get probe features from ML service
     let probeEmbedding = null;
     let probeAttributes = null;
 
     if (req.file) {
       const probePath = path.join(__dirname, "../uploads", req.file.filename);
+
+      // Extract PA-100K attributes
       try {
         const formData = new FormData();
         formData.append("image", fs.createReadStream(probePath));
-        const mlRes = await axios.post(
+        const attrRes = await axios.post(
           `${process.env.ML_SERVICE_URL}/api/attributes`,
           formData,
           { headers: formData.getHeaders(), timeout: 60000 }
         );
-        probeEmbedding  = mlRes.data.embedding  || null;
-        probeAttributes = mlRes.data.attributes || null;
+        probeAttributes = attrRes.data.attributes || null;
       } catch (mlErr) {
-        console.warn("ML service unavailable for probe extraction:", mlErr.message);
+        console.warn("ML service unavailable for attribute extraction:", mlErr.message);
+      }
+
+      // Extract OSNet Re-ID embedding (512-dim)
+      try {
+        const reidForm = new FormData();
+        reidForm.append("image", fs.createReadStream(probePath));
+        const reidRes = await axios.post(
+          `${process.env.ML_SERVICE_URL}/api/reid`,
+          reidForm,
+          { headers: reidForm.getHeaders(), timeout: 30000 }
+        );
+        probeEmbedding = reidRes.data.embedding || null;
+      } catch (reidErr) {
+        console.warn("ML service unavailable for Re-ID extraction:", reidErr.message);
       }
     }
 
+    // Parse search coordinates if provided
+    const queryLat = searchLat ? parseFloat(searchLat) : null;
+    const queryLng = searchLng ? parseFloat(searchLng) : null;
+    const hasQueryCoords = queryLat != null && queryLng != null && !isNaN(queryLat) && !isNaN(queryLng);
+
     // Step 2: fetch all active cases with embeddings from DB
     const allCases = await MissingPerson.find({ status: "active" })
-      .select("caseId name age gender lastSeenLocation thumbnailUrl status attributes reidEmbedding gaitScore gaitSignature")
+      .select("caseId name age gender lastSeenLocation lastSeenCoordinates thumbnailUrl status attributes reidEmbedding")
       .lean();
 
     // Step 3: score each case
     let scored = allCases.map((c) => {
-      const reidScore = probeEmbedding && c.reidEmbedding && c.reidEmbedding.length > 0
-        ? Math.max(0, (cosineSim(probeEmbedding, c.reidEmbedding) + 1) / 2)
-        : Math.random() * 0.3 + 0.5; // fallback if no embedding
-
-      // Attribute score: compare key attributes if both available
-      let attributeScore = Math.random() * 0.3 + 0.5;
-      if (probeAttributes && c.attributes) {
-        let matches = 0, total = 0;
-        const fields = ["gender", "hasHat", "hasGlasses", "hasBag", "upperBodyClothing", "lowerBodyClothing"];
-        fields.forEach((f) => {
-          if (probeAttributes[f] !== undefined && c.attributes[f] !== undefined) {
-            total++;
-            if (String(probeAttributes[f]) === String(c.attributes[f])) matches++;
-          }
-        });
-        if (total > 0) attributeScore = matches / total;
+      // Re-ID score (OSNet 512-dim cosine similarity)
+      let reidScore = 0;
+      if (probeEmbedding && c.reidEmbedding && c.reidEmbedding.length > 0) {
+        // For L2-normalized vectors, cosine similarity is just the dot product
+        // Map from [-1, 1] to [0, 1]
+        reidScore = Math.max(0, (cosineSim(probeEmbedding, c.reidEmbedding) + 1) / 2);
       }
 
-      const gaitScore = c.gaitScore || Math.random() * 0.3 + 0.5;
+      // Attribute score: weighted comparison of PA-100K attributes
+      let attributeScore = 0;
+      if (probeAttributes && c.attributes) {
+        const weightedFields = [
+          { field: "gender", weight: 2.0 },
+          { field: "age", weight: 1.5 },
+          { field: "hasHat", weight: 1.0 },
+          { field: "hasGlasses", weight: 1.0 },
+          { field: "hasBag", weight: 1.0 },
+          { field: "hasBackpack", weight: 1.0 },
+          { field: "hasShoulderBag", weight: 1.0 },
+          { field: "hasHandBag", weight: 1.0 },
+          { field: "holdingObjects", weight: 0.5 },
+          { field: "upperBodyClothing", weight: 1.5 },
+          { field: "lowerBodyClothing", weight: 1.5 },
+          { field: "upperBodyPattern", weight: 0.8 },
+          { field: "lowerBodyPattern", weight: 0.8 },
+          { field: "wearingBoots", weight: 0.5 },
+          { field: "orientation", weight: 0.3 },
+        ];
+        let weightedMatches = 0, totalWeight = 0;
+        weightedFields.forEach(({ field, weight }) => {
+          const pv = probeAttributes[field];
+          const cv = c.attributes[field] ?? c.attributes?.raw?.[field];
+          if (pv !== undefined && cv !== undefined) {
+            totalWeight += weight;
+            if (String(pv) === String(cv)) weightedMatches += weight;
+          }
+        });
 
+        // Also compare raw predictions if available (cosine similarity on probability vectors)
+        if (probeAttributes.raw && c.attributes.raw) {
+          const probeRaw = Object.values(probeAttributes.raw);
+          const caseRaw = Object.values(c.attributes.raw);
+          if (probeRaw.length === caseRaw.length && probeRaw.length > 0) {
+            const rawSim = cosineSim(probeRaw, caseRaw);
+            const fieldScore = totalWeight > 0 ? weightedMatches / totalWeight : 0.5;
+            attributeScore = 0.6 * fieldScore + 0.4 * ((rawSim + 1) / 2);
+          } else if (totalWeight > 0) {
+            attributeScore = weightedMatches / totalWeight;
+          }
+        } else if (totalWeight > 0) {
+          attributeScore = weightedMatches / totalWeight;
+        }
+      }
+
+      // Coordinate score (Haversine distance-based)
+      let locScore = 0;
+      let distanceKm = null;
+      if (hasQueryCoords && c.lastSeenCoordinates?.lat != null && c.lastSeenCoordinates?.lng != null) {
+        distanceKm = haversineKm(queryLat, queryLng, c.lastSeenCoordinates.lat, c.lastSeenCoordinates.lng);
+        locScore = coordinateScore(distanceKm);
+      }
+
+      // Fusion score based on search type
       let fusionScore;
-      if (searchType === "reid")      fusionScore = reidScore;
+      if (searchType === "reid") fusionScore = reidScore;
       else if (searchType === "attribute") fusionScore = attributeScore;
-      else if (searchType === "gait") fusionScore = gaitScore;
-      else fusionScore = 0.5 * reidScore + 0.3 * attributeScore + 0.2 * gaitScore;
+      else if (searchType === "location") fusionScore = locScore;
+      else {
+        // Multi-modal fusion: 0.4 * reid + 0.3 * attribute + 0.3 * coordinate
+        fusionScore = 0.4 * reidScore + 0.3 * attributeScore + 0.3 * locScore;
+      }
 
       return {
         ...c,
         score:          fusionScore,
         reidScore:      Math.round(reidScore      * 1000) / 1000,
         attributeScore: Math.round(attributeScore * 1000) / 1000,
-        gaitScore:      Math.round(gaitScore      * 1000) / 1000,
+        locationScore:  Math.round(locScore        * 1000) / 1000,
+        distanceKm:     distanceKm != null ? Math.round(distanceKm * 10) / 10 : null,
         fusionScore:    Math.round(fusionScore    * 1000) / 1000,
       };
     });

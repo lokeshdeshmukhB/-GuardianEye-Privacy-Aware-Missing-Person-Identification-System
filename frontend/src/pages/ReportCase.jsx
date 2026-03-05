@@ -8,7 +8,7 @@ const ReportCase = () => {
   const fileRef = useRef(null);
   const [form, setForm] = useState({
     name: '', age: '', gender: 'unknown', height: '', weight: '',
-    lastSeenDate: '', lastSeenLocation: '', description: ''
+    lastSeenDate: '', lastSeenLocation: '', lastSeenLat: '', lastSeenLng: '', description: ''
   });
   const [photos, setPhotos] = useState([]);
   const [previews, setPreviews] = useState([]);
@@ -96,8 +96,8 @@ const ReportCase = () => {
               <ul style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 2, paddingLeft: 16 }}>
                 <li>PA-100K ResNet50 → 26 attribute extraction</li>
                 <li>OSNet → 512-dim Re-ID embedding</li>
-                <li>Gait model → silhouette signature</li>
-                <li>All stored for future matching</li>
+                <li>Coordinate matching → Haversine distance</li>
+                <li>Gait analysis → planned for future (video)</li>
               </ul>
             </div>
           </div>
@@ -126,6 +126,10 @@ const ReportCase = () => {
 
             <h4 style={{ marginBottom: 16, marginTop: 20, fontSize: 14, fontWeight: 600 }}>Last Seen Details</h4>
             {field('lastSeenLocation', 'Last Seen Location', 'text', <FiMapPin />, 'Central Park, New York')}
+            <div className="grid-2">
+              {field('lastSeenLat', 'Latitude', 'number', <FiMapPin />, '28.6139')}
+              {field('lastSeenLng', 'Longitude', 'number', <FiMapPin />, '77.2090')}
+            </div>
             {field('lastSeenDate', 'Last Seen Date', 'date', <FiCalendar />)}
 
             <div className="form-group">

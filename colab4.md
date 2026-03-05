@@ -1,3 +1,4 @@
+
 from google.colab import drive
 drive.mount('/content/drive', force_remount=True)
 
@@ -11,7 +12,6 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 import torchvision.models as models
 from tqdm import tqdm
-
 import kagglehub
 
 path = kagglehub.dataset_download(
@@ -33,7 +33,6 @@ OUTPUT_DIR = "/content/drive/MyDrive/model2/output"
 
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
-
 df = pd.read_csv(TRAIN_CSV)
 
 print("Total rows:", len(df))
@@ -45,7 +44,6 @@ NUM_ATTRIBUTES = len(ATTRIBUTE_NAMES)
 
 print("Number of attributes:", NUM_ATTRIBUTES)
 print("Attributes:", ATTRIBUTE_NAMES)
-
 class PA100KDataset(Dataset):
     def __init__(self, csv_file, img_dir, transform=None):
         self.df = pd.read_csv(csv_file)
@@ -77,7 +75,6 @@ transform = transforms.Compose([
         std=[0.229, 0.224, 0.225]
     )
 ])
-
 train_dataset = PA100KDataset(TRAIN_CSV, IMG_DIR, transform)
 val_dataset   = PA100KDataset(VAL_CSV, IMG_DIR, transform)
 test_dataset  = PA100KDataset(TEST_CSV, IMG_DIR, transform)
@@ -102,7 +99,6 @@ val_loader = DataLoader(
 imgs, labels = next(iter(train_loader))
 print("Images:", imgs.shape)
 print("Labels:", labels.shape)
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 model = models.resnet50(weights="IMAGENET1K_V1")
@@ -116,7 +112,6 @@ optimizer = torch.optim.Adam(
     lr=1e-4,
     weight_decay=1e-5
 )
-
 def train_one_epoch(model, loader, optimizer, criterion, device):
     model.train()
     running_loss = 0.0
@@ -150,7 +145,6 @@ def validate(model, loader, criterion, device):
         running_loss += loss.item()
 
     return running_loss / len(loader)
-
 EPOCHS = 100
 PATIENCE = 7
 min_delta = 1e-4
@@ -169,7 +163,6 @@ if os.path.exists(ckpt_path):
     print(f"✅ Resumed from epoch {start_epoch}")
 else:
     start_epoch = 1
-
 for epoch in range(start_epoch, EPOCHS + 1):
     print(f"\nEpoch {epoch}/{EPOCHS}")
 
@@ -216,3 +209,21 @@ for epoch in range(start_epoch, EPOCHS + 1):
             f"Best Val Loss: {best_val_loss:.4f}"
         )
         break
+import torch
+import torchvision.models as models
+import torch.nn as nn
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+NUM_ATTRIBUTES = len(ATTRIBUTE_NAMES)
+
+model = models.resnet50(weights=None)
+model.fc = nn.Linear(model.fc.in_features, NUM_ATTRIBUTES)
+
+best_ckpt = "/content/drive/MyDrive/model2/checkpoints/pa100k_best.pth"
+model.load_state_dict(torch.load(best_ckpt, map_location=device))
+
+model = model.to(device)
+model.eval()
+
+print("✅ Model loaded for inference")
