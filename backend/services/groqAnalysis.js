@@ -1,0 +1,145 @@
+const Groq = require("groq-sdk");
+
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const MODEL = process.env.GROQ_MODEL || "meta-llama/llama-4-scout-17b-16e-instruct";
+
+/**
+ * Build a distance label from km value.
+ */
+function distanceLabel(km) {
+  if (km == null) return "No Location Data";
+  if (km < 1)  return `${(km * 1000).toFixed(0)}m — Very Close (Same Area)`;
+  if (km < 5)  return `${km.toFixed(1)}km — Nearby (Plausible Match)`;
+  if (km < 20) return `${km.toFixed(1)}km — Moderate Distance`;
+  return `${km.toFixed(1)}km — Far (Unlikely Same Sighting)`;
+}
+
+/**
+ * Human-readable Re-ID similarity interpretation.
+ */
+function reidInterpretation(score) {
+  const pct = Math.round(score * 100);
+  if (pct >= 80) return `${pct}% — Very Strong visual match. The body shape, clothing texture, color profile, and overall silhouette are highly consistent. This is a strong Re-ID signal.`;
+  if (pct >= 60) return `${pct}% — Moderate visual match. Several visual features align (build, posture, clothing tone), but some differences detected in texture/color details. Worth investigating.`;
+  if (pct >= 40) return `${pct}% — Weak match. Some general similarities (e.g. similar clothing type), but significant visual differences in body proportions, color patterns, or accessories.`;
+  return `${pct}% — Very Weak. The persons appear visually distinct. Different clothing, body build, or overall appearance detected by the neural network.`;
+}
+
+/**
+ * Analyse search results using Groq LLM.
+ */
+async function analyzeSearchResults(probeAttrs, results) {
+  if (!results || results.length === 0) return [];
+
+  const probeSection = probeAttrs
+    ? `PROBE IMAGE ATTRIBUTES:
+  Gender: ${probeAttrs.gender || "Unknown"}
+  Age: ${probeAttrs.age || "Unknown"}
+  Upper Clothing: ${probeAttrs.upperBodyClothing || "Unknown"}
+  Lower Clothing: ${probeAttrs.lowerBodyClothing || "Unknown"}
+  Hat: ${probeAttrs.hasHat ? "Yes" : "No"}
+  Glasses: ${probeAttrs.hasGlasses ? "Yes" : "No"}
+  Bag: ${probeAttrs.hasBag ? "Yes" : "No"}
+  Backpack: ${probeAttrs.hasBackpack ? "Yes" : "No"}
+  Shoulder Bag: ${probeAttrs.hasShoulderBag ? "Yes" : "No"}
+  Hand Bag: ${probeAttrs.hasHandBag ? "Yes" : "No"}
+  Boots: ${probeAttrs.wearingBoots ? "Yes" : "No"}
+  Orientation: ${probeAttrs.orientation || "Unknown"}
+  Upper Pattern: ${probeAttrs.upperBodyPattern || "Plain"}
+  Lower Pattern: ${probeAttrs.lowerBodyPattern || "Plain"}
+  Confidence: ${probeAttrs.confidence ? Math.round(probeAttrs.confidence * 100) + "%" : "Unknown"}`
+    : "PROBE IMAGE: No attributes available";
+
+  const caseSections = results.map((r, i) => {
+    const attrs = r.attributes || {};
+    const reidPct = Math.round((r.reidScore || 0) * 100);
+    const reidExplain = reidInterpretation(r.reidScore || 0);
+    return `
+CASE #${i + 1}: ${r.name || "Unknown"} (ID: ${r.caseId})
+  ── Score Breakdown ──
+  Re-ID Score: ${reidPct}% (OSNet 512-dim visual embedding cosine similarity)
+  Re-ID Meaning: ${reidExplain}
+  Attribute Score: ${Math.round((r.attributeScore || 0) * 100)}% (PA-100K attribute match)
+  Location Score: ${Math.round((r.locationScore || 0) * 100)}%
+  Fusion Score: ${Math.round((r.fusionScore || 0) * 100)}% (weighted combination)
+  ── Location ──
+  Distance: ${r.distanceKm != null ? r.distanceKm + " km" : "No coordinates available"}
+  Distance Label: ${distanceLabel(r.distanceKm)}
+  Last Seen Location: ${r.lastSeenLocation || "Unknown"}
+  ── Case Attributes ──
+  Gender: ${attrs.gender || r.gender || "Unknown"}
+  Age: ${attrs.age || r.age || "Unknown"}
+  Upper Clothing: ${attrs.upperBodyClothing || "Unknown"}
+  Lower Clothing: ${attrs.lowerBodyClothing || "Unknown"}
+  Hat: ${attrs.hasHat ? "Yes" : "No"}
+  Glasses: ${attrs.hasGlasses ? "Yes" : "No"}
+  Bag: ${attrs.hasBag ? "Yes" : "No"}`;
+  }).join("\n");
+
+  const prompt = `You are a senior forensic analyst AI assistant for GuardianEye — a Missing Person Identification System. You analyze multi-modal search results and provide expert assessments on whether each matched case could be the same person as the probe image.
+
+UNDERSTANDING THE SCORES:
+- Re-ID Score (OSNet): A 512-dimensional neural network embedding that captures visual appearance — body shape, clothing texture, color patterns, silhouette. Higher scores mean the visual appearance is more similar across camera views. >70% is strong, 50-70% is moderate, <50% is weak.
+- Attribute Score (PA-100K): Comparison of 26 pedestrian attributes (gender, age, clothing type, accessories). Uses weighted matching where gender and clothing type matter more than minor accessories.
+- Location Score: Based on Haversine distance between search coordinates and last-seen coordinates. <1km is very strong, 1-5km is plausible, >20km is unlikely for recent sightings.
+- Fusion Score: Weighted combination (40% Re-ID + 30% Attributes + 30% Location).
+
+${probeSection}
+
+MATCHED CASES:
+${caseSections}
+
+For EACH case, provide a detailed JSON analysis with these fields:
+- "caseId": the case ID
+- "likelihood": "HIGH", "MEDIUM", or "LOW"
+- "verdict": A single decisive sentence: "Likely the SAME person" or "Likely DIFFERENT persons" or "Inconclusive — requires further investigation"
+- "reasoning": 3-4 sentences of forensic reasoning. Mention specific matching and non-matching attributes. Explain what the Re-ID score means in human terms (e.g., "The 72% Re-ID score indicates matching body build and similar clothing color/texture patterns detected by the neural network").
+- "reidExplanation": 1-2 sentences explaining ONLY the Re-ID embedding comparison in plain language — what visual features the neural network likely picked up on (body shape, clothing color, pose similarity etc.)
+- "locationAnalysis": 1-2 sentences about location plausibility — could the person have traveled this distance? Is the location consistent?
+- "keyMatches": array of matching attribute names
+- "keyMismatches": array of non-matching attribute names
+- "overallSummary": One line summary for a quick glance (e.g., "Strong candidate — matching gender, clothing, and nearby location")
+
+Respond with ONLY a valid JSON array. No markdown, no code blocks, no extra text.
+[{"caseId":"MP-001","likelihood":"HIGH","verdict":"...","reasoning":"...","reidExplanation":"...","locationAnalysis":"...","keyMatches":["gender"],"keyMismatches":["hat"],"overallSummary":"..."}]`;
+
+  try {
+    console.log("[Groq] Sending prompt to", MODEL, "—", results.length, "cases");
+    const completion = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: MODEL,
+      temperature: 0.3,
+      max_tokens: 3000,
+    });
+
+    const raw = completion.choices[0]?.message?.content || "[]";
+    console.log("[Groq] Raw response length:", raw.length);
+
+    let jsonStr = raw.trim();
+    if (jsonStr.startsWith("```")) {
+      jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+    }
+    const arrayMatch = jsonStr.match(/\[[\s\S]*\]/);
+    if (arrayMatch) jsonStr = arrayMatch[0];
+
+    const analysis = JSON.parse(jsonStr);
+    console.log("[Groq] Parsed", Array.isArray(analysis) ? analysis.length : 0, "verdicts");
+    return Array.isArray(analysis) ? analysis : [];
+  } catch (err) {
+    console.error("[Groq] Analysis error:", err.message);
+    console.error("[Groq] Full error:", err);
+    return results.map(r => ({
+      caseId: r.caseId,
+      likelihood: "UNKNOWN",
+      verdict: "Analysis unavailable",
+      reasoning: "AI analysis unavailable — " + err.message,
+      reidExplanation: reidInterpretation(r.reidScore || 0),
+      locationAnalysis: distanceLabel(r.distanceKm),
+      keyMatches: [],
+      keyMismatches: [],
+      overallSummary: "Could not reach AI service",
+    }));
+  }
+}
+
+module.exports = { analyzeSearchResults, distanceLabel, reidInterpretation };

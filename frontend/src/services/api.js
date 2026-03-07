@@ -22,6 +22,7 @@ export const deleteCase = (id) => API.delete(`/cases/${id}`);
 
 // Search
 export const searchPersons = (formData) => API.post('/search', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+export const analyzeResults = (data) => API.post('/search/analyze', data);
 export const getSearchLogs = () => API.get('/search/logs');
 
 // Admin

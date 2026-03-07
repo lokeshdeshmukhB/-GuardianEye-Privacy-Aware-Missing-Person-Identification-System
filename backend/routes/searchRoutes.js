@@ -8,6 +8,7 @@ const MissingPerson = require("../models/MissingPerson");
 const SearchLog = require("../models/SearchLog");
 const { protect } = require("../middleware/authMiddleware");
 const upload = require("../middleware/uploadMiddleware");
+const { analyzeSearchResults, distanceLabel } = require("../services/groqAnalysis");
 
 // ── Cosine similarity between two number arrays ────────────────────────────
 function cosineSim(a, b) {
@@ -173,6 +174,7 @@ router.post("/", protect, upload.single("probe"), async (req, res) => {
         locationScore:  Math.round(locScore        * 1000) / 1000,
         distanceKm:     distanceKm != null ? Math.round(distanceKm * 10) / 10 : null,
         fusionScore:    Math.round(fusionScore    * 1000) / 1000,
+        locationLabel:  distanceLabel(distanceKm != null ? Math.round(distanceKm * 10) / 10 : null),
       };
     });
 
@@ -200,6 +202,23 @@ router.post("/", protect, upload.single("probe"), async (req, res) => {
   } catch (err) {
     console.error("Search error:", err);
     res.status(500).json({ message: err.message });
+  }
+});
+
+// POST /api/search/analyze – AI-powered result analysis via Groq LLM
+router.post("/analyze", protect, async (req, res) => {
+  try {
+    const { probeAttributes, results } = req.body;
+    console.log("[AI Analyze] Request received:", results?.length, "results");
+    if (!results || results.length === 0) {
+      return res.json({ analysis: [], message: "No results to analyze" });
+    }
+    const analysis = await analyzeSearchResults(probeAttributes, results);
+    console.log("[AI Analyze] Success:", analysis.length, "verdicts");
+    res.json({ analysis });
+  } catch (err) {
+    console.error("[AI Analyze] Error:", err.message, err.stack);
+    res.status(500).json({ message: "AI analysis failed: " + err.message });
   }
 });
 
