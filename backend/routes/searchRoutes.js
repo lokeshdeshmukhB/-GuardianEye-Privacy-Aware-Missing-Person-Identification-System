@@ -58,11 +58,11 @@ router.post("/", protect, upload.single("probe"), async (req, res) => {
         const formData = new FormData();
         formData.append("image", fs.createReadStream(probePath));
         const attrRes = await axios.post(
-          `${process.env.ML_SERVICE_URL}/api/attributes`,
+          `${process.env.FASTAPI_BASE_URL}/attributes/predict`,
           formData,
           { headers: formData.getHeaders(), timeout: 60000 }
         );
-        probeAttributes = attrRes.data.attributes || null;
+        probeAttributes = attrRes.data.structured_attributes || null;
       } catch (mlErr) {
         console.warn("ML service unavailable for attribute extraction:", mlErr.message);
       }
@@ -72,7 +72,7 @@ router.post("/", protect, upload.single("probe"), async (req, res) => {
         const reidForm = new FormData();
         reidForm.append("image", fs.createReadStream(probePath));
         const reidRes = await axios.post(
-          `${process.env.ML_SERVICE_URL}/api/reid`,
+          `${process.env.FASTAPI_BASE_URL}/reid/extract`,
           reidForm,
           { headers: reidForm.getHeaders(), timeout: 30000 }
         );

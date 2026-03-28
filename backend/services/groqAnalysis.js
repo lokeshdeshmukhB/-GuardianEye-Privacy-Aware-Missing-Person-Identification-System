@@ -142,4 +142,135 @@ Respond with ONLY a valid JSON array. No markdown, no code blocks, no extra text
   }
 }
 
-module.exports = { analyzeSearchResults, distanceLabel, reidInterpretation };
+/**
+ * Analyse Re-ID gallery matches (new Re-ID system).
+ */
+async function analyzeReidResults(matches) {
+  if (!matches || matches.length === 0) return null;
+
+  const caseLines = matches
+    .map((m, i) =>
+      `Match #${i + 1}: person_id="${m.person_id}" | similarity=${(m.similarity * 100).toFixed(1)}% | image_path="${m.image_path}"`
+    )
+    .join('\n');
+
+  const prompt = `You are a forensic AI assistant for a Person Re-Identification system.
+A query image was compared against a gallery using OSNet deep Re-ID (512-dim cosine similarity).
+
+GALLERY MATCHES (ranked by similarity):
+${caseLines}
+
+For each match, return a JSON object with:
+- "person_id": string
+- "likelihood": "HIGH" | "MEDIUM" | "LOW"  (>75% HIGH, 50-75% MEDIUM, <50% LOW)
+- "verdict": one-sentence decision
+- "explanation": 2-3 sentences explaining what the similarity score means visually (body build, clothing texture, color patterns captured by the neural network)
+- "recommendation": short action recommendation (e.g. "Verify with additional camera angles")
+
+Respond with ONLY a valid JSON array. No markdown, no extra text.`;
+
+  try {
+    const completion = await groq.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: MODEL,
+      temperature: 0.2,
+      max_tokens: 1500,
+    });
+    let raw = completion.choices[0]?.message?.content?.trim() || '[]';
+    if (raw.startsWith('```')) raw = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+    const arr = raw.match(/\[[\s\S]*\]/);
+    return arr ? JSON.parse(arr[0]) : [];
+  } catch (err) {
+    console.error('[Groq] analyzeReidResults error:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Generate plain-language description of PA-100K attribute predictions.
+ */
+async function analyzeAttributes(attributes) {
+  if (!attributes) return null;
+
+  const attrLines = Object.entries(attributes)
+    .filter(([, v]) => v.predicted)
+    .map(([k, v]) => `${k}: ${(v.confidence * 100).toFixed(1)}%`)
+    .join(', ');
+
+  const prompt = `You are analyzing pedestrian attributes predicted by a PA-100K deep learning model.
+
+PREDICTED ATTRIBUTES (confidence > 50%):
+${attrLines || 'None predicted above threshold'}
+
+Write a concise 2-3 sentence description of this person based on these predicted attributes.
+Then write one sentence about which attributes have the highest confidence and are most reliable.
+Return ONLY a JSON object: {"description": "...", "reliability": "..."}`;
+
+  try {
+    const completion = await groq.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: MODEL,
+      temperature: 0.3,
+      max_tokens: 400,
+    });
+    let raw = completion.choices[0]?.message?.content?.trim() || '{}';
+    if (raw.startsWith('```')) raw = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+    const obj = raw.match(/\{[\s\S]*\}/);
+    return obj ? JSON.parse(obj[0]) : null;
+  } catch (err) {
+    console.error('[Groq] analyzeAttributes error:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Analyse gait recognition results.
+ */
+async function analyzeGaitResults(matches, framesReceived) {
+  if (!matches || matches.length === 0) return null;
+
+  const matchLines = matches
+    .map((m, i) =>
+      `Match #${i + 1}: person_id="${m.person_id}" | similarity=${(m.similarity * 100).toFixed(1)}%`
+    )
+    .join('\n');
+
+  const prompt = `You are a forensic AI assistant analyzing gait recognition results.
+The system matched a walking silhouette sequence (${framesReceived} frames) against a gallery using SimpleGaitSet deep learning.
+
+GAIT MATCHES:
+${matchLines}
+
+For each match, return a JSON object with:
+- "person_id": string
+- "confidence_level": "HIGH" | "MEDIUM" | "LOW"
+- "assessment": 2 sentences assessing the match quality and what gait features likely matched (stride pattern, body silhouette, walking rhythm)
+- "caveats": one-sentence caveat (e.g. clothing changes, camera angle, health conditions can affect gait)
+
+Return ONLY a valid JSON array. No markdown, no extra text.`;
+
+  try {
+    const completion = await groq.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: MODEL,
+      temperature: 0.2,
+      max_tokens: 800,
+    });
+    let raw = completion.choices[0]?.message?.content?.trim() || '[]';
+    if (raw.startsWith('```')) raw = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+    const arr = raw.match(/\[[\s\S]*\]/);
+    return arr ? JSON.parse(arr[0]) : [];
+  } catch (err) {
+    console.error('[Groq] analyzeGaitResults error:', err.message);
+    return null;
+  }
+}
+
+module.exports = {
+  analyzeSearchResults,
+  analyzeReidResults,
+  analyzeAttributes,
+  analyzeGaitResults,
+  distanceLabel,
+  reidInterpretation,
+};

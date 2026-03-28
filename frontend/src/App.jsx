@@ -11,6 +11,13 @@ import CaseDetail from './pages/CaseDetail';
 import AdminPanel from './pages/AdminPanel';
 import PrivacyPage from './pages/PrivacyPage';
 
+// ── Re-ID System Pages ───────────────────────────────────────────────────────
+import ReIDDashboard from './pages/ReIDDashboard';
+import ReIDSearch from './pages/ReIDSearch';
+import AttributeRecognition from './pages/AttributeRecognition';
+import GaitRecognition from './pages/GaitRecognition';
+import GalleryPage from './pages/GalleryPage';
+
 const Private = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: '#fff' }}>Loading…</div>;
@@ -38,6 +45,13 @@ function App() {
             <Route path="/cases/:id" element={<Private><CaseDetail /></Private>} />
             <Route path="/admin" element={<Private><AdminRoute><AdminPanel /></AdminRoute></Private>} />
             <Route path="/privacy" element={<PrivacyPage />} />
+
+            {/* ── Re-ID System ───────────────────────────────────────────── */}
+            <Route path="/reid-dashboard" element={<ReIDDashboard />} />
+            <Route path="/reid-search" element={<ReIDSearch />} />
+            <Route path="/attributes" element={<AttributeRecognition />} />
+            <Route path="/gait" element={<GaitRecognition />} />
+            <Route path="/reid-gallery" element={<GalleryPage />} />
           </Route>
         </Routes>
       </BrowserRouter>
@@ -46,3 +60,4 @@ function App() {
 }
 
 export default App;
+

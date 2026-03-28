@@ -59,7 +59,7 @@ const CaseDetail = () => {
 
   const attrs = caseData.attributes?.raw || {};
   const attrEntries = Object.entries(attrs).slice(0, 12);
-  const embedding = caseData.reidEmbedding?.slice(0, 64) || [];
+  const embedding = caseData.reidEmbedding || [];  // full 512-dim
 
   return (
     <div className="fade-in">
@@ -275,7 +275,7 @@ const CaseDetail = () => {
           <div className="card" style={{ padding: 20 }}>
             <h4 style={{ marginBottom: 14, fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
               <FiCpu /> OSNet Re-ID Embedding
-              {embedding.length > 0 && <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>({embedding.length}-dim)</span>}
+              {embedding.length > 0 && <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>({embedding.length}-dim · L2 normalized)</span>}
             </h4>
             {embedding.length > 0 ? (
               <div>
@@ -300,17 +300,49 @@ const CaseDetail = () => {
             )}
           </div>
 
-          {/* Gait — Future Scope */}
+          {/* Gait Recognition */}
           <div className="card" style={{ padding: 20 }}>
-            <h4 style={{ marginBottom: 14, fontSize: 14, fontWeight: 600 }}>Gait Analysis</h4>
-            <div style={{ padding: '16px 12px', background: 'var(--surface-2)', borderRadius: 10, textAlign: 'center' }}>
-              <div style={{ fontSize: 24, marginBottom: 8 }}>🚶</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Future Scope</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                Gait analysis requires walking video sequences for reliable recognition.
-                Single images cannot capture gait patterns.
+            <h4 style={{ marginBottom: 14, fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>🚶 Gait Recognition</h4>
+            <div style={{ padding: '16px 12px', background: 'var(--surface-2)', borderRadius: 10 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 12 }}>
+                Match this person by their walking gait pattern using the <strong>SimpleGaitSet</strong> deep learning model.
+                Upload a sequence of <strong>silhouette frames</strong> from surveillance footage.
               </div>
-              <div style={{ marginTop: 10, fontSize: 11, color: 'var(--accent)', fontWeight: 500 }}>Planned for future release</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <a
+                  href="/gait"
+                  style={{
+                    flex: 1,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    padding: '8px 14px',
+                    background: 'rgba(139,92,246,0.15)',
+                    border: '1px solid rgba(139,92,246,0.4)',
+                    borderRadius: 8, color: '#a78bfa',
+                    fontSize: 12, fontWeight: 600,
+                    textDecoration: 'none',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s'
+                  }}
+                >
+                  🚶 Open Gait Matcher
+                </a>
+                <a
+                  href="/reid-search"
+                  style={{
+                    flex: 1,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    padding: '8px 14px',
+                    background: 'rgba(6,182,212,0.1)',
+                    border: '1px solid rgba(6,182,212,0.3)',
+                    borderRadius: 8, color: '#22d3ee',
+                    fontSize: 12, fontWeight: 600,
+                    textDecoration: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🔍 Re-ID Search
+                </a>
+              </div>
             </div>
           </div>
         </div>

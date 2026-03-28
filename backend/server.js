@@ -13,11 +13,18 @@ app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Routes
+// Existing routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/cases', require('./routes/caseRoutes'));
 app.use('/api/search', require('./routes/searchRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
+
+// ── Re-ID System routes ──────────────────────────────────────────────────────
+app.use('/api/reid', require('./routes/reidRoutes'));
+app.use('/api/attributes', require('./routes/attributeRoutes'));
+app.use('/api/gait', require('./routes/gaitRoutes'));
+app.use('/api/gallery', require('./routes/galleryRoutes'));
+app.use('/api/stats', require('./routes/statsRoutes'));
 
 // Health check
 app.get('/api/health', (req, res) => {
