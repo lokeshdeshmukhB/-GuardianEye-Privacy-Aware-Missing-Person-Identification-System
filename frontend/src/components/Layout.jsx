@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FiHome, FiSearch, FiPlusCircle, FiShield, FiLogOut, FiMenu, FiUsers } from 'react-icons/fi';
+import {
+  FiHome, FiSearch, FiPlusCircle, FiShield, FiLogOut, FiMenu,
+  FiUsers, FiActivity, FiCpu, FiGrid, FiTarget, FiLayers
+} from 'react-icons/fi';
 import './Layout.css';
 
 const Layout = () => {
@@ -14,14 +17,23 @@ const Layout = () => {
     navigate('/login');
   };
 
-  const navItems = [
+  const mainNavItems = [
     { to: '/dashboard', icon: <FiHome className="nav-item-icon" />, label: 'Dashboard' },
     { to: '/search', icon: <FiSearch className="nav-item-icon" />, label: 'AI Search' },
     { to: '/report', icon: <FiPlusCircle className="nav-item-icon" />, label: 'Report Case' },
     { to: '/privacy', icon: <FiShield className="nav-item-icon" />, label: 'Privacy' },
   ];
+
+  const reidNavItems = [
+    { to: '/reid-dashboard', icon: <FiActivity className="nav-item-icon" />, label: 'Re-ID Hub' },
+    { to: '/reid-search', icon: <FiTarget className="nav-item-icon" />, label: 'Person Re-ID' },
+    { to: '/attributes', icon: <FiLayers className="nav-item-icon" />, label: 'Attributes' },
+    { to: '/gait', icon: <FiCpu className="nav-item-icon" />, label: 'Gait Analysis' },
+    { to: '/reid-gallery', icon: <FiGrid className="nav-item-icon" />, label: 'Gallery' },
+  ];
+
   if (user?.role === 'admin') {
-    navItems.push({ to: '/admin', icon: <FiUsers className="nav-item-icon" />, label: 'Admin' });
+    mainNavItems.push({ to: '/admin', icon: <FiUsers className="nav-item-icon" />, label: 'Admin' });
   }
 
   const initial = user?.name?.charAt(0).toUpperCase() || 'U';
@@ -30,7 +42,7 @@ const Layout = () => {
     <div className="app-shell">
       {/* Sidebar */}
       <aside className={`sidebar ${expanded ? 'expanded' : 'collapsed'}`}>
-        <div className="sidebar-logo">
+        <div className="sidebar-logo" onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer' }}>
           <div className="sidebar-logo-icon">
             <FiShield />
           </div>
@@ -38,7 +50,23 @@ const Layout = () => {
         </div>
 
         <nav className="sidebar-nav">
-          {navItems.map((item) => (
+          {/* Main section */}
+          <div className="nav-section-label">Main</div>
+          {mainNavItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+            >
+              {item.icon}
+              <span className="nav-item-label">{item.label}</span>
+            </NavLink>
+          ))}
+
+          {/* Re-ID System section */}
+          <div className="nav-divider" />
+          <div className="nav-section-label">Re-ID System</div>
+          {reidNavItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

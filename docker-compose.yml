@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongo:
+    image: mongo:7
+    container_name: guardian-eye-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - guardian-eye-network
+    restart: unless-stopped
+
+  # FastAPI ML Microservice
+  ml-service:
+    build:
+      context: ./ml-services
+      dockerfile: Dockerfile
+    container_name: guardian-eye-ml
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./ml-services/checkpoints:/app/checkpoints
+      - ./ml-services/embeddings:/app/embeddings
+    environment:
+      - CHECKPOINT_DIR=/app/checkpoints
+      - EMBEDDINGS_DIR=/app/embeddings
+      - PA100K_CHECKPOINT=/app/checkpoints/pa100k_best.pth
+      - GAIT_CHECKPOINT=/app/checkpoints/gait_best.pth
+      - TOP_K=5
+    networks:
+      - guardian-eye-network
+    restart: unless-stopped
+
+  # Node.js Express Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: guardian-eye-backend
+    ports:
+      - "5001:5001"
+    depends_on:
+      - mongo
+      - ml-service
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/person_reid
+      - FASTAPI_BASE_URL=http://ml-service:8001
+      - PORT=5001
+      - UPLOAD_DIR=./uploads
+      - JWT_SECRET=guardian-eye-secret-key-change-in-production
+    networks:
+      - guardian-eye-network
+    restart: unless-stopped
+
+  # React Frontend (Vite dev server)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: guardian-eye-frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=http://localhost:5001/api
+    networks:
+      - guardian-eye-network
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+    driver: local
+
+networks:
+  guardian-eye-network:
+    driver: bridge
