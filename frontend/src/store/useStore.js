@@ -4,15 +4,15 @@ const useStore = create((set) => ({
   // Gallery
   gallery: [],
   galleryTotal: 0,
-  setGallery: (persons, total) => set({ gallery: persons, galleryTotal: total }),
+  setGallery: (data) => set({ gallery: data }),
 
   // Re-ID results
   reidResults: null,
   setReidResults: (results) => set({ reidResults: results }),
 
-  // Attribute results
-  attributeResults: null,
-  setAttributeResults: (results) => set({ attributeResults: results }),
+  // Attribute results (aliased as attrResults for component convenience)
+  attrResults: null,
+  setAttrResults: (results) => set({ attrResults: results }),
 
   // Gait results
   gaitResults: null,
@@ -28,7 +28,7 @@ const useStore = create((set) => ({
 
   // Reset all results
   resetResults: () =>
-    set({ reidResults: null, attributeResults: null, gaitResults: null }),
+    set({ reidResults: null, attrResults: null, gaitResults: null }),
 }));
 
 export default useStore;

@@ -50,36 +50,7 @@ const ICONS = {
   LowerStripe: '〰', LowerPattern: '◼', LongCoat: '🥼', Trousers: '👖', Shorts: '🩳', 'Skirt&Dress': '👗', boots: '👢',
 };
 
-/* Confidence Bar Component */
-function ConfidenceBar({ value, label = 'Confidence' }) {
-  const pct = Math.round(value * 100);
-  const getLevel = (confidence) => {
-    if (confidence >= 0.8) return { label: 'High', color: '#22c55e' };
-    if (confidence >= 0.6) return { label: 'Medium', color: '#eab308' };
-    return { label: 'Low', color: '#ef4444' };
-  };
-  const level = getLevel(value);
-  return (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-        <span>{label}</span>
-        <span>{pct}%</span>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <div style={{ 
-          width: 8, height: 8, borderRadius: 2, background: level.color 
-        }} />
-        <span style={{ fontSize: 12, fontWeight: 600, color: level.color }}>
-          {level.label}
-        </span>
-      </div>
-      <div style={{ height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
-        <div style={{ width: `${pct}%`, height: '100%', background: level.color, transition: 'width 0.6s ease' }} />
-      </div>
-    </div>
-  );
-}
-
+/* ── Circular Gauge ── */
 function CircularGauge({ pct, color, glow, size = 72 }) {
   const r = (size - 10) / 2;
   const c = 2 * Math.PI * r;
@@ -89,11 +60,8 @@ function CircularGauge({ pct, color, glow, size = 72 }) {
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={6} />
       <circle
         cx={size / 2} cy={size / 2} r={r}
-        fill="none"
-        stroke={color}
-        strokeWidth={6}
-        strokeDasharray={c}
-        strokeDashoffset={offset}
+        fill="none" stroke={color} strokeWidth={6}
+        strokeDasharray={c} strokeDashoffset={offset}
         strokeLinecap="round"
         transform={`rotate(-90 ${size / 2} ${size / 2})`}
         style={{ filter: `drop-shadow(0 0 5px ${glow})`, transition: 'stroke-dashoffset 0.8s cubic-bezier(.4,0,.2,1)' }}
@@ -106,6 +74,7 @@ function CircularGauge({ pct, color, glow, size = 72 }) {
   );
 }
 
+/* ── Attribute Row ── */
 function AttrRow({ name, prob, color, glow }) {
   const pct = Math.round(prob * 100);
   const active = prob > 0.5;
@@ -126,6 +95,7 @@ function AttrRow({ name, prob, color, glow }) {
   );
 }
 
+/* ── Summary Tag ── */
 function SummaryTag({ label, value, icon }) {
   const isBool = value === '✓ Yes' || value === '✗ No';
   const positive = value === '✓ Yes';
@@ -139,6 +109,8 @@ function SummaryTag({ label, value, icon }) {
     </div>
   );
 }
+
+/* ═══════════ Main Component ═══════════ */
 
 export default function AttributeRecognition() {
   const { attrResults, setAttrResults, loading, setLoading } = useStore();
@@ -196,15 +168,20 @@ export default function AttributeRecognition() {
     <div className="attr-page fade-in">
       {/* ── Header ── */}
       <div className="attr-header">
-        <div className="attr-header__icon">🏷️</div>
+        <div className="page-icon" style={{
+          background: 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(52,211,153,0.08))',
+          border: '1px solid rgba(16,185,129,0.3)',
+          boxShadow: '0 0 30px rgba(16,185,129,0.15)'
+        }}>🏷️</div>
         <div>
           <h1 className="attr-header__title">Attribute Recognition</h1>
           <p className="attr-header__sub">PA-100K ResNet-50 · 26-class binary pedestrian attribute classification</p>
         </div>
         {attrResults && (
-       <div className="attr-header__pills">
-         <span className="attr-pill attr-pill--active">{activePreds} detected</span>
-       </div>
+          <div className="attr-header__pills">
+            <span className="attr-pill attr-pill--active">{activePreds} detected</span>
+            <span className="attr-pill attr-pill--avg">{totalPreds} total</span>
+          </div>
         )}
       </div>
 
@@ -237,7 +214,7 @@ export default function AttributeRecognition() {
           </div>
 
           {error && (
-            <div className="attr-error">{error}</div>
+            <div className="attr-error">⚠️ {error}</div>
           )}
 
           {/* Metrics row */}
@@ -300,7 +277,7 @@ export default function AttributeRecognition() {
           )}
 
           {attrResults && (
-            <div className="attr-groups">
+            <div className="attr-groups stagger">
               {ATTR_GROUPS.map(group => {
                 const groupAttrs = group.keys.filter(k => attrs[k] !== undefined);
                 if (!groupAttrs.length) return null;

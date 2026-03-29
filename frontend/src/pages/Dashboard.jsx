@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { FiUsers, FiAlertCircle, FiCheckCircle, FiSearch, FiPlusCircle } from 'react-icons/fi';
+import { FiUsers, FiAlertCircle, FiCheckCircle, FiSearch, FiPlusCircle, FiTarget, FiLayers, FiCpu } from 'react-icons/fi';
 import { getStats, getCases } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -21,7 +21,11 @@ const Dashboard = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}><div className="spinner" /></div>;
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+      <div className="spinner" />
+    </div>
+  );
 
   const barData = [
     { day: 'Mon', cases: 2 }, { day: 'Tue', cases: 5 }, { day: 'Wed', cases: 3 },
@@ -43,10 +47,18 @@ const Dashboard = () => {
 
   return (
     <div className="fade-in">
+      {/* Header */}
       <div className="section-header">
-        <div>
-          <h2 className="section-title">Dashboard</h2>
-          <p className="section-subtitle">Welcome back, {user?.name}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div className="page-icon" style={{
+            background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(99,102,241,0.05))',
+            border: '1px solid rgba(99,102,241,0.3)',
+            boxShadow: '0 0 30px rgba(99,102,241,0.12)'
+          }}>🏠</div>
+          <div>
+            <h2 className="section-title">Dashboard</h2>
+            <p className="section-subtitle">Welcome back, {user?.name}</p>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button className="btn-primary" onClick={() => navigate('/report')}><FiPlusCircle /> Report Case</button>
@@ -55,46 +67,105 @@ const Dashboard = () => {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid-4" style={{ marginBottom: 28 }}>
+      <div className="grid-4 stagger" style={{ marginBottom: 28 }}>
         {statCards.map(s => (
           <div className="stat-card" key={s.label}>
-            <div style={{ width: 44, height: 44, borderRadius: 10, background: `${s.color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, color: s.color }}>{s.icon}</div>
+            <div style={{
+              width: 48, height: 48, borderRadius: 14,
+              background: `${s.color}15`, border: `1px solid ${s.color}25`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 22, color: s.color,
+              boxShadow: `0 4px 16px ${s.color}15`
+            }}>{s.icon}</div>
             <div>
-              <div style={{ fontSize: 28, fontWeight: 700 }}>{s.value}</div>
-              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{s.label}</div>
+              <div style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-1px' }}>{s.value}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{s.label}</div>
             </div>
           </div>
         ))}
       </div>
 
+      {/* Re-ID Quick Access */}
+      <div className="card" style={{ padding: 22, marginBottom: 28, position: 'relative', overflow: 'hidden' }}>
+        <div style={{
+          position: 'absolute', top: 0, right: 0, width: 200, height: 200,
+          background: 'radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%)',
+          borderRadius: '50%', transform: 'translate(50%, -50%)'
+        }} />
+        <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14, position: 'relative' }}>
+          🧬 Re-ID System — Quick Access
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, position: 'relative' }}>
+          {[
+            { to: '/reid-dashboard', icon: '🧬', label: 'Re-ID Hub', color: '#6366f1' },
+            { to: '/reid-search', icon: '🔍', label: 'Person Search', color: '#06b6d4' },
+            { to: '/attributes', icon: '🏷️', label: 'Attributes', color: '#10b981' },
+            { to: '/gait', icon: '🚶', label: 'Gait Analysis', color: '#8b5cf6' },
+          ].map(item => (
+            <div
+              key={item.to}
+              onClick={() => navigate(item.to)}
+              style={{
+                padding: '14px 16px', borderRadius: 12, cursor: 'pointer',
+                background: `${item.color}08`, border: `1px solid ${item.color}20`,
+                display: 'flex', alignItems: 'center', gap: 10,
+                transition: 'all 0.25s var(--ease-out)',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = `${item.color}15`; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = `${item.color}08`; e.currentTarget.style.transform = ''; }}
+            >
+              <span style={{ fontSize: 20 }}>{item.icon}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{item.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Charts */}
       <div className="grid-2" style={{ marginBottom: 28 }}>
-        <div className="card" style={{ padding: 20 }}>
-          <h3 style={{ marginBottom: 16, fontSize: 15, fontWeight: 600 }}>Weekly Cases</h3>
+        <div className="card" style={{ padding: 22 }}>
+          <h3 style={{ marginBottom: 18, fontSize: 15, fontWeight: 700 }}>Weekly Cases</h3>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={barData}>
-              <XAxis dataKey="day" stroke="#64748b" tick={{ fontSize: 12 }} />
-              <YAxis stroke="#64748b" tick={{ fontSize: 12 }} />
-              <Tooltip contentStyle={{ background: '#0f1420', border: '1px solid #1e2a42', borderRadius: 8 }} />
-              <Bar dataKey="cases" fill="#6366f1" radius={[4, 4, 0, 0]} />
+              <XAxis dataKey="day" stroke="#3d4a64" tick={{ fontSize: 12, fill: '#5e6b85' }} />
+              <YAxis stroke="#3d4a64" tick={{ fontSize: 12, fill: '#5e6b85' }} />
+              <Tooltip
+                contentStyle={{
+                  background: 'rgba(13,17,32,0.95)', border: '1px solid #1c2540',
+                  borderRadius: 10, backdropFilter: 'blur(8px)'
+                }}
+                labelStyle={{ color: '#e8ecf4' }}
+              />
+              <Bar dataKey="cases" fill="url(#barGradient)" radius={[6, 6, 0, 0]} />
+              <defs>
+                <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#6366f1" />
+                  <stop offset="100%" stopColor="#8b5cf6" />
+                </linearGradient>
+              </defs>
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        <div className="card" style={{ padding: 20 }}>
-          <h3 style={{ marginBottom: 16, fontSize: 15, fontWeight: 600 }}>Case Status</h3>
+        <div className="card" style={{ padding: 22 }}>
+          <h3 style={{ marginBottom: 18, fontSize: 15, fontWeight: 700 }}>Case Status</h3>
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value">
                 {pieData.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
               </Pie>
-              <Tooltip contentStyle={{ background: '#0f1420', border: '1px solid #1e2a42', borderRadius: 8 }} />
+              <Tooltip
+                contentStyle={{
+                  background: 'rgba(13,17,32,0.95)', border: '1px solid #1c2540',
+                  borderRadius: 10
+                }}
+              />
             </PieChart>
           </ResponsiveContainer>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginTop: 8 }}>
             {pieData.map((d, i) => (
-              <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-muted)' }}>
-                <span style={{ width: 10, height: 10, borderRadius: '50%', background: COLORS[i], display: 'inline-block' }} />
+              <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)' }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: COLORS[i], display: 'inline-block', boxShadow: `0 0 8px ${COLORS[i]}40` }} />
                 {d.name}: {d.value}
               </div>
             ))}
@@ -103,9 +174,9 @@ const Dashboard = () => {
       </div>
 
       {/* Recent Cases */}
-      <div className="card">
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-          <h3 style={{ fontSize: 15, fontWeight: 600 }}>Recent Cases</h3>
+      <div className="card" style={{ overflow: 'hidden' }}>
+        <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)' }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700 }}>Recent Cases</h3>
         </div>
         <table className="table">
           <thead>
@@ -113,15 +184,17 @@ const Dashboard = () => {
           </thead>
           <tbody>
             {cases.length === 0 && (
-              <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 32 }}>No cases yet. <span style={{ color: 'var(--accent)', cursor: 'pointer' }} onClick={() => navigate('/report')}>Report one →</span></td></tr>
+              <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>
+                No cases yet. <span style={{ color: 'var(--accent)', cursor: 'pointer' }} onClick={() => navigate('/report')}>Report one →</span>
+              </td></tr>
             )}
             {cases.map(c => (
               <tr key={c._id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/cases/${c.caseId}`)}>
-                <td style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--accent)' }}>{c.caseId}</td>
-                <td style={{ fontWeight: 500 }}>{c.name}</td>
+                <td style={{ fontFamily: 'monospace', fontSize: 13, color: '#06b6d4' }}>{c.caseId}</td>
+                <td style={{ fontWeight: 600 }}>{c.name}</td>
                 <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{c.lastSeenLocation || '—'}</td>
                 <td><span className={`badge badge-${c.status}`}>{c.status}</span></td>
-                <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>→</td>
+                <td style={{ color: 'var(--text-subtle)', fontSize: 14 }}>→</td>
               </tr>
             ))}
           </tbody>
