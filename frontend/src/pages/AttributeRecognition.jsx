@@ -2,40 +2,143 @@ import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { predictAttributes } from '../services/attributeService';
 import useStore from '../store/useStore';
+import './AttributeRecognition.css';
 
 const ATTR_GROUPS = [
-  { name: 'Demographics', keys: ['Female', 'AgeOver60', 'Age18-60', 'AgeLess18'], color: '#818cf8' },
-  { name: 'Orientation',  keys: ['Front', 'Side', 'Back'],                       color: '#22d3ee' },
-  { name: 'Accessories',  keys: ['Hat', 'Glasses', 'HandBag', 'ShoulderBag', 'Backpack', 'HoldObjectsInFront'], color: '#fbbf24' },
-  { name: 'Upper Body',   keys: ['ShortSleeve', 'LongSleeve', 'UpperStride', 'UpperLogo', 'UpperPlaid', 'UpperSplice'],         color: '#34d399' },
-  { name: 'Lower Body',   keys: ['LowerStripe', 'LowerPattern', 'LongCoat', 'Trousers', 'Shorts', 'Skirt&Dress', 'boots'],     color: '#f97316' },
+  {
+    name: 'Demographics',
+    icon: '👤',
+    keys: ['Female', 'AgeOver60', 'Age18-60', 'AgeLess18'],
+    color: '#818cf8',
+    glow: 'rgba(129,140,248,0.35)',
+  },
+  {
+    name: 'Orientation',
+    icon: '🧭',
+    keys: ['Front', 'Side', 'Back'],
+    color: '#22d3ee',
+    glow: 'rgba(34,211,238,0.35)',
+  },
+  {
+    name: 'Accessories',
+    icon: '🎒',
+    keys: ['Hat', 'Glasses', 'HandBag', 'ShoulderBag', 'Backpack', 'HoldObjectsInFront'],
+    color: '#fbbf24',
+    glow: 'rgba(251,191,36,0.35)',
+  },
+  {
+    name: 'Upper Body',
+    icon: '👕',
+    keys: ['ShortSleeve', 'LongSleeve', 'UpperStride', 'UpperLogo', 'UpperPlaid', 'UpperSplice'],
+    color: '#34d399',
+    glow: 'rgba(52,211,153,0.35)',
+  },
+  {
+    name: 'Lower Body',
+    icon: '👖',
+    keys: ['LowerStripe', 'LowerPattern', 'LongCoat', 'Trousers', 'Shorts', 'Skirt&Dress', 'boots'],
+    color: '#f97316',
+    glow: 'rgba(249,115,22,0.35)',
+  },
 ];
 
-const AttrBar = ({ name, prob, color }) => {
-  const pct = Math.round(prob * 100);
-  const active = prob > 0.5;
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-      <span style={{ fontSize: 11, color: active ? 'var(--text)' : 'var(--text-muted)', width: 110, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {name}
-      </span>
-      <div style={{ flex: 1, height: 5, background: 'var(--surface-2)', borderRadius: 3, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${pct}%`, background: active ? color : 'var(--border)', borderRadius: 3, opacity: active ? 1 : 0.5, transition: 'width 0.5s ease' }} />
-      </div>
-      <span style={{ fontSize: 10, fontWeight: 700, color: active ? color : 'var(--text-muted)', width: 30, textAlign: 'right' }}>{pct}%</span>
-    </div>
-  );
+const ICONS = {
+  Female: '♀', AgeOver60: '🧓', 'Age18-60': '🧑', AgeLess18: '🧒',
+  Front: '⬆', Side: '➡', Back: '⬇',
+  Hat: '🎩', Glasses: '👓', HandBag: '👜', ShoulderBag: '💼', Backpack: '🎒', HoldObjectsInFront: '📦',
+  ShortSleeve: '👕', LongSleeve: '🧥', UpperStride: '〰', UpperLogo: '🔖', UpperPlaid: '◼', UpperSplice: '🔀',
+  LowerStripe: '〰', LowerPattern: '◼', LongCoat: '🥼', Trousers: '👖', Shorts: '🩳', 'Skirt&Dress': '👗', boots: '👢',
 };
 
-const StructuredTag = ({ label, value }) => (
-  <div style={{
-    display: 'flex', justifyContent: 'space-between', fontSize: 12,
-    padding: '5px 10px', background: 'var(--surface-2)', borderRadius: 7
-  }}>
-    <span style={{ color: 'var(--text-muted)' }}>{label}</span>
-    <span style={{ fontWeight: 600 }}>{value || '—'}</span>
-  </div>
-);
+/* Confidence Bar Component */
+function ConfidenceBar({ value, label = 'Confidence' }) {
+  const pct = Math.round(value * 100);
+  const getLevel = (confidence) => {
+    if (confidence >= 0.8) return { label: 'High', color: '#22c55e' };
+    if (confidence >= 0.6) return { label: 'Medium', color: '#eab308' };
+    return { label: 'Low', color: '#ef4444' };
+  };
+  const level = getLevel(value);
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+        <span>{label}</span>
+        <span>{pct}%</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ 
+          width: 8, height: 8, borderRadius: 2, background: level.color 
+        }} />
+        <span style={{ fontSize: 12, fontWeight: 600, color: level.color }}>
+          {level.label}
+        </span>
+      </div>
+      <div style={{ height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+        <div style={{ width: `${pct}%`, height: '100%', background: level.color, transition: 'width 0.6s ease' }} />
+      </div>
+    </div>
+  );
+}
+
+function CircularGauge({ pct, color, glow, size = 72 }) {
+  const r = (size - 10) / 2;
+  const c = 2 * Math.PI * r;
+  const offset = c - (pct / 100) * c;
+  return (
+    <svg width={size} height={size} className="attr-gauge">
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={6} />
+      <circle
+        cx={size / 2} cy={size / 2} r={r}
+        fill="none"
+        stroke={color}
+        strokeWidth={6}
+        strokeDasharray={c}
+        strokeDashoffset={offset}
+        strokeLinecap="round"
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        style={{ filter: `drop-shadow(0 0 5px ${glow})`, transition: 'stroke-dashoffset 0.8s cubic-bezier(.4,0,.2,1)' }}
+      />
+      <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle"
+        fill={color} fontSize={size < 60 ? 10 : 13} fontWeight="800" fontFamily="Inter, sans-serif">
+        {pct}%
+      </text>
+    </svg>
+  );
+}
+
+function AttrRow({ name, prob, color, glow }) {
+  const pct = Math.round(prob * 100);
+  const active = prob > 0.5;
+  const icon = ICONS[name] || '•';
+  return (
+    <div className={`attr-row${active ? ' attr-row--active' : ''}`} style={{ '--ac': color, '--glow': glow }}>
+      <span className="attr-row__icon">{icon}</span>
+      <span className="attr-row__name">{name}</span>
+      <div className="attr-row__track">
+        <div
+          className="attr-row__fill"
+          style={{ width: `${pct}%`, background: active ? color : 'rgba(255,255,255,0.1)', boxShadow: active ? `0 0 8px ${glow}` : 'none' }}
+        />
+      </div>
+      <span className="attr-row__pct" style={{ color: active ? color : 'var(--text-muted)' }}>{pct}%</span>
+      {active && <span className="attr-row__badge" style={{ background: `${color}22`, color, borderColor: `${color}44` }}>✓</span>}
+    </div>
+  );
+}
+
+function SummaryTag({ label, value, icon }) {
+  const isBool = value === '✓ Yes' || value === '✗ No';
+  const positive = value === '✓ Yes';
+  return (
+    <div className="summary-tag">
+      <span className="summary-tag__icon">{icon}</span>
+      <span className="summary-tag__label">{label}</span>
+      <span className={`summary-tag__val${isBool ? (positive ? ' summary-tag__val--yes' : ' summary-tag__val--no') : ''}`}>
+        {value || '—'}
+      </span>
+    </div>
+  );
+}
 
 export default function AttributeRecognition() {
   const { attrResults, setAttrResults, loading, setLoading } = useStore();
@@ -67,133 +170,161 @@ export default function AttributeRecognition() {
   const structured = attrResults?.structured_attributes || {};
 
   const activePreds = Object.values(attrs).filter(v => v?.predicted).length;
-  const totalPreds  = Object.values(attrs).length;
-  const avgConf     = totalPreds > 0
+  const totalPreds = Object.values(attrs).length;
+  const avgConf = totalPreds > 0
     ? Object.values(attrs).reduce((s, v) => s + (v?.confidence || 0), 0) / totalPreds
     : 0;
+  const maxConf = totalPreds > 0
+    ? Math.max(...Object.values(attrs).map(v => v?.confidence || 0))
+    : 0;
+
+  const SUMMARY_FIELDS = [
+    { label: 'Gender', value: structured.gender, icon: '👤' },
+    { label: 'Age Group', value: structured.age, icon: '🎂' },
+    { label: 'Orientation', value: structured.orientation, icon: '🧭' },
+    { label: 'Upper Body', value: structured.upperBodyClothing, icon: '👕' },
+    { label: 'Lower Body', value: structured.lowerBodyClothing, icon: '👖' },
+    { label: 'Upper Pattern', value: structured.upperBodyPattern, icon: '🔲' },
+    { label: 'Lower Pattern', value: structured.lowerBodyPattern, icon: '🔲' },
+    { label: 'Hat', value: structured.hasHat ? '✓ Yes' : '✗ No', icon: '🎩' },
+    { label: 'Glasses', value: structured.hasGlasses ? '✓ Yes' : '✗ No', icon: '👓' },
+    { label: 'Bag', value: structured.hasBag ? '✓ Yes' : '✗ No', icon: '👜' },
+    { label: 'Boots', value: structured.wearingBoots ? '✓ Yes' : '✗ No', icon: '👢' },
+  ];
 
   return (
-    <div className="fade-in" style={{ padding: 32, maxWidth: 1200, margin: '0 auto' }}>
-
-      {/* Header */}
-      <div style={{ marginBottom: 28 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 42, height: 42, borderRadius: 12, background: 'rgba(16,185,129,0.12)',
-            border: '1px solid rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20
-          }}>🏷️</div>
-          <div>
-            <h1 style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.5px' }}>Attribute Recognition</h1>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>PA-100K ResNet-50 · 26-class binary pedestrian attribute classification</p>
-          </div>
+    <div className="attr-page fade-in">
+      {/* ── Header ── */}
+      <div className="attr-header">
+        <div className="attr-header__icon">🏷️</div>
+        <div>
+          <h1 className="attr-header__title">Attribute Recognition</h1>
+          <p className="attr-header__sub">PA-100K ResNet-50 · 26-class binary pedestrian attribute classification</p>
         </div>
+        {attrResults && (
+       <div className="attr-header__pills">
+         <span className="attr-pill attr-pill--active">{activePreds} detected</span>
+       </div>
+        )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 24, alignItems: 'start' }}>
-
-        {/* Left */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="attr-layout">
+        {/* ── Left column ── */}
+        <div className="attr-left">
+          {/* Upload zone */}
           <div
             {...getRootProps()}
-            className={`upload-zone${isDragActive ? ' drag-over' : ''}`}
-            style={{ position: 'relative', minHeight: 200 }}
+            className={`attr-dropzone${isDragActive ? ' attr-dropzone--active' : ''}`}
           >
             <input {...getInputProps()} />
             {preview ? (
-              <img src={preview} alt="Query" style={{ maxHeight: 220, maxWidth: '100%', borderRadius: 10, objectFit: 'contain' }} />
+              <img src={preview} alt="Query" className="attr-dropzone__img" />
             ) : (
-              <div style={{ padding: '20px 0' }}>
-                <div style={{ fontSize: 36, marginBottom: 10 }}>🏷️</div>
-                <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', marginBottom: 6 }}>
+              <div className="attr-dropzone__empty">
+                <div className="attr-dropzone__circle">🏷️</div>
+                <p className="attr-dropzone__text">
                   {isDragActive ? 'Drop image here' : 'Drag & drop a person image'}
                 </p>
-                <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>or click to browse · JPG / PNG</p>
+                <p className="attr-dropzone__hint">or click to browse · JPG / PNG</p>
               </div>
             )}
             {loading && (
-              <div style={{
-                position: 'absolute', inset: 0, background: 'rgba(10,13,20,0.85)', borderRadius: 'var(--radius)',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10
-              }}>
-                <div className="spinner" style={{ borderTopColor: 'var(--success)' }} />
-                <p style={{ fontSize: 13, color: 'var(--success)', fontWeight: 600 }}>Extracting 26 attributes…</p>
+              <div className="attr-dropzone__overlay">
+                <div className="attr-spinner" />
+                <p className="attr-dropzone__overlay-text">Extracting 26 attributes…</p>
               </div>
             )}
           </div>
 
           {error && (
-            <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 10, padding: 12, fontSize: 13, color: 'var(--danger)' }}>
-              {error}
+            <div className="attr-error">{error}</div>
+          )}
+
+          {/* Metrics row */}
+          {totalPreds > 0 && (
+            <div className="attr-metrics">
+              <div className="attr-metric">
+                <CircularGauge pct={activePreds} color="#10b981" glow="rgba(16,185,129,0.4)" size={72} />
+                <span className="attr-metric__label">Detected</span>
+              </div>
+              <div className="attr-metric">
+                <CircularGauge pct={Math.round(avgConf * 100)} color="#818cf8" glow="rgba(129,140,248,0.4)" size={72} />
+                <span className="attr-metric__label">Avg Conf</span>
+              </div>
+              <div className="attr-metric">
+                <CircularGauge pct={Math.round(maxConf * 100)} color="#f59e0b" glow="rgba(245,158,11,0.4)" size={72} />
+                <span className="attr-metric__label">Peak Conf</span>
+              </div>
             </div>
           )}
 
           {/* Structured summary */}
           {Object.keys(structured).length > 0 && (
-            <div className="card" style={{ padding: 16 }}>
-              <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--success)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Structured Overview</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <StructuredTag label="Gender" value={structured.gender} />
-                <StructuredTag label="Age Group" value={structured.age} />
-                <StructuredTag label="Orientation" value={structured.orientation} />
-                <StructuredTag label="Upper Body" value={structured.upperBodyClothing} />
-                <StructuredTag label="Lower Body" value={structured.lowerBodyClothing} />
-                <StructuredTag label="Upper Pattern" value={structured.upperBodyPattern} />
-                <StructuredTag label="Lower Pattern" value={structured.lowerBodyPattern} />
-                <StructuredTag label="Hat" value={structured.hasHat ? '✓ Yes' : '✗ No'} />
-                <StructuredTag label="Glasses" value={structured.hasGlasses ? '✓ Yes' : '✗ No'} />
-                <StructuredTag label="Bag" value={structured.hasBag ? '✓ Yes' : '✗ No'} />
-                <StructuredTag label="Boots" value={structured.wearingBoots ? '✓ Yes' : '✗ No'} />
-              </div>
-            </div>
-          )}
-
-          {/* Stats */}
-          {totalPreds > 0 && (
-            <div className="card" style={{ padding: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0, textAlign: 'center' }}>
-              <div style={{ borderRight: '1px solid var(--border)', padding: '4px 0' }}>
-                <p style={{ fontSize: 20, fontWeight: 800, color: 'var(--success)' }}>{activePreds}</p>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Positive Attrs</p>
-              </div>
-              <div style={{ padding: '4px 0' }}>
-                <p style={{ fontSize: 20, fontWeight: 800, color: 'var(--success)' }}>{Math.round(avgConf * 100)}%</p>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Avg Confidence</p>
+            <div className="attr-summary-card">
+              <p className="attr-summary-card__title">🔍 Structured Overview</p>
+              <div className="attr-summary-list">
+                {SUMMARY_FIELDS.map(f => (
+                  <SummaryTag key={f.label} {...f} />
+                ))}
               </div>
             </div>
           )}
 
           {(attrResults || preview) && !loading && (
-            <button className="btn-secondary" onClick={() => { setAttrResults(null); setPreview(null); setError(null); }}
-              style={{ width: '100%', fontSize: 12 }}>
-              Clear Results
+            <button
+              className="attr-clear-btn"
+              onClick={() => { setAttrResults(null); setPreview(null); setError(null); }}
+            >
+              ✕ Clear Results
             </button>
           )}
         </div>
 
-        {/* Right: Attribute bars */}
-        <div>
+        {/* ── Right column ── */}
+        <div className="attr-right">
           {!attrResults && !loading && (
-            <div className="card" style={{ padding: 60, textAlign: 'center' }}>
-              <div style={{ fontSize: 52, marginBottom: 14 }}>🏷️</div>
-              <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Awaiting Image</h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.6, maxWidth: 300, margin: '0 auto' }}>
+            <div className="attr-empty-state">
+              <div className="attr-empty-state__icon">🏷️</div>
+              <h2 className="attr-empty-state__title">Awaiting Image</h2>
+              <p className="attr-empty-state__text">
                 Upload a person image to run PA-100K ResNet-50 attribute recognition across 26 binary labels.
               </p>
+              <div className="attr-empty-state__tags">
+                {ATTR_GROUPS.map(g => (
+                  <span key={g.name} className="attr-empty-tag" style={{ color: g.color, borderColor: `${g.color}44`, background: `${g.color}11` }}>
+                    {g.icon} {g.name}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
 
           {attrResults && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="attr-groups">
               {ATTR_GROUPS.map(group => {
                 const groupAttrs = group.keys.filter(k => attrs[k] !== undefined);
                 if (!groupAttrs.length) return null;
+                const groupActive = groupAttrs.filter(k => attrs[k]?.predicted).length;
                 return (
-                  <div key={group.name} className="card" style={{ padding: 18 }}>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: group.color, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
-                      {group.name}
-                    </p>
-                    {groupAttrs.map(k => (
-                      <AttrBar key={k} name={k} prob={attrs[k]?.confidence || 0} color={group.color} />
-                    ))}
+                  <div key={group.name} className="attr-group-card" style={{ '--gc': group.color, '--gg': group.glow }}>
+                    <div className="attr-group-card__header">
+                      <span className="attr-group-card__icon">{group.icon}</span>
+                      <span className="attr-group-card__name" style={{ color: group.color }}>{group.name}</span>
+                      <span className="attr-group-card__count" style={{ color: group.color, background: `${group.color}18`, borderColor: `${group.color}33` }}>
+                        {groupActive}/{groupAttrs.length}
+                      </span>
+                    </div>
+                    <div className="attr-group-card__bars">
+                      {groupAttrs.map(k => (
+                        <AttrRow
+                          key={k}
+                          name={k}
+                          prob={attrs[k]?.confidence || 0}
+                          color={group.color}
+                          glow={group.glow}
+                        />
+                      ))}
+                    </div>
                   </div>
                 );
               })}

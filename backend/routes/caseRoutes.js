@@ -74,7 +74,7 @@ router.post('/', protect, upload.array('photos', 5), async (req, res) => {
 
 // ── ML feature extraction (attributes + osnet reid) ───────────────────────
 async function _extractMLFeatures(docId, imagePath) {
-  const ML_URL = process.env.ML_SERVICE_URL || 'http://127.0.0.1:8000';
+  const ML_URL = process.env.ML_SERVICE_URL || 'http://127.0.0.1:8001';
   const FormData = require('form-data');
 
   const updates = {};
@@ -83,7 +83,7 @@ async function _extractMLFeatures(docId, imagePath) {
   try {
     const attrForm = new FormData();
     attrForm.append('image', fs.createReadStream(imagePath));
-    const attrRes = await axios.post(`${ML_URL}/api/attributes`, attrForm, {
+    const attrRes = await axios.post(`${ML_URL}/attributes/predict`, attrForm, {
       headers: attrForm.getHeaders(),
       timeout: 60000,
     });
@@ -115,7 +115,7 @@ async function _extractMLFeatures(docId, imagePath) {
   try {
     const reidForm = new FormData();
     reidForm.append('image', fs.createReadStream(imagePath));
-    const reidRes = await axios.post(`${ML_URL}/api/reid`, reidForm, {
+    const reidRes = await axios.post(`${ML_URL}/reid/extract`, reidForm, {
       headers: reidForm.getHeaders(),
       timeout: 30000,
     });

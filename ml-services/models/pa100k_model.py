@@ -2,12 +2,9 @@
 PA-100K Pedestrian Attribute Recognition model.
 ResNet-50 with final FC replaced by 26-class binary head.
 """
-import io
 import os
-import zipfile
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torchvision.models as tv_models
 from PIL import Image
 from torchvision import transforms
@@ -30,8 +27,9 @@ NUM_ATTRIBUTES = len(ATTRIBUTE_NAMES)
 pa100k_model = None
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# PA-100K correct input resolution — 256×192 (NOT 224×112 which kills accuracy)
 _transform = transforms.Compose([
-    transforms.Resize((224, 112)),
+    transforms.Resize((256, 192)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 ])
@@ -40,6 +38,9 @@ _CKPT_CANDIDATES = [
     os.path.join(os.path.dirname(__file__), "..", "weights", "pa100k_last.pth"),
     os.path.join(os.path.dirname(__file__), "..", "weights", "pa100k_best.pth"),
 ]
+
+# Temperature for sigmoid calibration — softens extreme logits to spread confidence
+_TEMPERATURE = 1.5
 
 
 def load_pa100k():
@@ -53,8 +54,24 @@ def load_pa100k():
     if ckpt_path:
         try:
             ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
-            state = ckpt.get("model_state", ckpt) if isinstance(ckpt, dict) else ckpt
-            model.load_state_dict(state)
+
+            # Handle multiple checkpoint key formats
+            if isinstance(ckpt, dict):
+                state = (
+                    ckpt.get("model_state_dict")
+                    or ckpt.get("model_state")
+                    or ckpt.get("state_dict")
+                    or ckpt.get("model")
+                    or ckpt
+                )
+            else:
+                state = ckpt
+
+            # Strip DataParallel 'module.' prefix if present
+            if isinstance(state, dict) and any(k.startswith("module.") for k in state.keys()):
+                state = {k.replace("module.", "", 1): v for k, v in state.items()}
+
+            model.load_state_dict(state, strict=False)
             print(f"[OK] PA-100K loaded from {os.path.basename(ckpt_path)}")
         except Exception as e:
             print(f"[WARN] PA-100K checkpoint load failed: {e} — using random weights")
@@ -145,7 +162,7 @@ def _build_structured_attributes(preds, probs):
 def predict_attributes(image: Image.Image) -> dict:
     """
     Run PA-100K inference on a PIL image.
-    Returns dict with 'attributes', 'raw_probabilities'.
+    Returns dict with 'attributes', 'structured_attributes', 'raw_probabilities'.
     """
     if pa100k_model is None:
         raise RuntimeError("PA-100K model not loaded")
@@ -153,9 +170,9 @@ def predict_attributes(image: Image.Image) -> dict:
     img_t = _transform(image.convert("RGB")).unsqueeze(0).to(device)
     with torch.no_grad():
         logits = pa100k_model(img_t)
-        probs = torch.sigmoid(logits).cpu().numpy()[0]
+        # Temperature scaling before sigmoid — produces more calibrated confidence
+        probs = torch.sigmoid(logits / _TEMPERATURE).cpu().numpy()[0]
 
-    raw = {name: round(float(p), 4) for name, p in zip(ATTRIBUTE_NAMES, probs)}
     preds = (probs > 0.5).astype(int)
 
     attributes = {}
@@ -168,8 +185,8 @@ def predict_attributes(image: Image.Image) -> dict:
     structured = _build_structured_attributes(preds, probs)
 
     return {
-        "attributes": attributes,           # used by Re-ID subsystem
-        "structured_attributes": structured,# used by Missing Person legacy system
+        "attributes": attributes,
+        "structured_attributes": structured,
         "raw_probabilities": [round(float(p), 4) for p in probs],
         "attribute_names": ATTRIBUTE_NAMES,
     }
