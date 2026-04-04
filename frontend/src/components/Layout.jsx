@@ -18,14 +18,7 @@ const Layout = () => {
   };
 
   const mainNavItems = [
-    { to: '/dashboard', icon: <FiHome className="nav-item-icon" />, label: 'Dashboard' },
-    { to: '/search', icon: <FiSearch className="nav-item-icon" />, label: 'AI Search' },
-    { to: '/report', icon: <FiPlusCircle className="nav-item-icon" />, label: 'Report Case' },
-    { to: '/privacy', icon: <FiShield className="nav-item-icon" />, label: 'Privacy' },
-  ];
-
-  const reidNavItems = [
-    { to: '/reid-dashboard', icon: <FiActivity className="nav-item-icon" />, label: 'Re-ID Hub' },
+    { to: '/reid-dashboard', icon: <FiActivity className="nav-item-icon" />, label: 'Dashboard' },
     { to: '/reid-search', icon: <FiTarget className="nav-item-icon" />, label: 'Person Re-ID' },
     { to: '/attributes', icon: <FiLayers className="nav-item-icon" />, label: 'Attributes' },
     { to: '/gait', icon: <FiCpu className="nav-item-icon" />, label: 'Gait Analysis' },
@@ -51,7 +44,7 @@ const Layout = () => {
 
         <nav className="sidebar-nav">
           {/* Main section */}
-          <div className="nav-section-label">Main</div>
+          {mainNavItems.length > 0 && <div className="nav-section-label">Main</div>}
           {mainNavItems.map((item) => (
             <NavLink
               key={item.to}
@@ -63,19 +56,7 @@ const Layout = () => {
             </NavLink>
           ))}
 
-          {/* Re-ID System section */}
-          <div className="nav-divider" />
-          <div className="nav-section-label">Re-ID System</div>
-          {reidNavItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
-            >
-              {item.icon}
-              <span className="nav-item-label">{item.label}</span>
-            </NavLink>
-          ))}
+
         </nav>
 
         <div className="sidebar-footer">
