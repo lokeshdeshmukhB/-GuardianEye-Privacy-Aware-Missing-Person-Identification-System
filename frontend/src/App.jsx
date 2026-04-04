@@ -4,7 +4,7 @@ import Layout from './components/Layout';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
+
 import SearchPage from './pages/SearchPage';
 import ReportCase from './pages/ReportCase';
 import CaseDetail from './pages/CaseDetail';
@@ -39,7 +39,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route element={<Layout />}>
-            <Route path="/dashboard" element={<Private><Dashboard /></Private>} />
+            <Route path="/dashboard" element={<Private><ReIDDashboard /></Private>} />
             <Route path="/search" element={<Private><SearchPage /></Private>} />
             <Route path="/report" element={<Private><ReportCase /></Private>} />
             <Route path="/cases/:id" element={<Private><CaseDetail /></Private>} />
@@ -47,7 +47,7 @@ function App() {
             <Route path="/privacy" element={<PrivacyPage />} />
 
             {/* ── Re-ID System ───────────────────────────────────────────── */}
-            <Route path="/reid-dashboard" element={<ReIDDashboard />} />
+
             <Route path="/reid-search" element={<ReIDSearch />} />
             <Route path="/attributes" element={<AttributeRecognition />} />
             <Route path="/gait" element={<GaitRecognition />} />

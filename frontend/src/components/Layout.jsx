@@ -18,7 +18,7 @@ const Layout = () => {
   };
 
   const mainNavItems = [
-    { to: '/reid-dashboard', icon: <FiActivity className="nav-item-icon" />, label: 'Dashboard' },
+    { to: '/dashboard', icon: <FiActivity className="nav-item-icon" />, label: 'Dashboard' },
     { to: '/reid-search', icon: <FiTarget className="nav-item-icon" />, label: 'Person Re-ID' },
     { to: '/attributes', icon: <FiLayers className="nav-item-icon" />, label: 'Attributes' },
     { to: '/gait', icon: <FiCpu className="nav-item-icon" />, label: 'Gait Analysis' },
