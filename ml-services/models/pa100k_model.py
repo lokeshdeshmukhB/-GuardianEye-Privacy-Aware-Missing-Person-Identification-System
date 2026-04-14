@@ -3,6 +3,7 @@ PA-100K Pedestrian Attribute Recognition model.
 ResNet-50 with final FC replaced by 26-class binary head.
 """
 import os
+import numpy as np
 import torch
 import torch.nn as nn
 import torchvision.models as tv_models
@@ -190,3 +191,14 @@ def predict_attributes(image: Image.Image) -> dict:
         "raw_probabilities": [round(float(p), 4) for p in probs],
         "attribute_names": ATTRIBUTE_NAMES,
     }
+
+
+def structured_attributes_from_probs(raw_probabilities: list) -> dict:
+    """Build structured attribute dict from 26 PA-100K probabilities (threshold 0.5)."""
+    if len(raw_probabilities) != NUM_ATTRIBUTES:
+        raise ValueError(
+            f"raw_probabilities must have length {NUM_ATTRIBUTES}, got {len(raw_probabilities)}"
+        )
+    probs_arr = np.asarray(raw_probabilities, dtype=np.float64)
+    preds = (probs_arr > 0.5).astype(int)
+    return _build_structured_attributes(preds, probs_arr)

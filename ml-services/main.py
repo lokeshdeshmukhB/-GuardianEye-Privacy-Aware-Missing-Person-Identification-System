@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import reid, attributes, gait
+from routers import reid, attributes, gait, multimodal
 from models.osnet_model import load_osnet
 from models.pa100k_model import load_pa100k
 from models.gaitset_model import load_gaitset
@@ -46,6 +46,7 @@ app.add_middleware(
 app.include_router(reid.router, prefix="/reid", tags=["Person Re-ID"])
 app.include_router(attributes.router, prefix="/attributes", tags=["Pedestrian Attributes"])
 app.include_router(gait.router, prefix="/gait", tags=["Gait Recognition"])
+app.include_router(multimodal.router, prefix="/multimodal", tags=["Multimodal Search"])
 
 
 @app.get("/", tags=["Health"])

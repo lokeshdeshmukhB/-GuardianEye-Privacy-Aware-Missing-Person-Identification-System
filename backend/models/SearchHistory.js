@@ -5,7 +5,7 @@ const SearchHistorySchema = new mongoose.Schema(
     queryImage: { type: String, default: null },
     searchType: {
       type: String,
-      enum: ['reid', 'attribute', 'gait'],
+      enum: ['reid', 'attribute', 'gait', 'multimodal'],
       required: true,
     },
     results: [

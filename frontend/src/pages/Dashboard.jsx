@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { FiUsers, FiAlertCircle, FiCheckCircle, FiSearch, FiPlusCircle, FiTarget, FiLayers, FiCpu } from 'react-icons/fi';
+import { FiUsers, FiAlertCircle, FiCheckCircle, FiSearch, FiPlusCircle } from 'react-icons/fi';
 import { getStats, getCases } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -62,7 +62,6 @@ const Dashboard = () => {
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button className="btn-primary" onClick={() => navigate('/report')}><FiPlusCircle /> Report Case</button>
-          <button className="btn-secondary" onClick={() => navigate('/search')}><FiSearch /> AI Search</button>
         </div>
       </div>
 
@@ -83,42 +82,6 @@ const Dashboard = () => {
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Re-ID Quick Access */}
-      <div className="card" style={{ padding: 22, marginBottom: 28, position: 'relative', overflow: 'hidden' }}>
-        <div style={{
-          position: 'absolute', top: 0, right: 0, width: 200, height: 200,
-          background: 'radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%)',
-          borderRadius: '50%', transform: 'translate(50%, -50%)'
-        }} />
-        <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14, position: 'relative' }}>
-          🧬 Re-ID System — Quick Access
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, position: 'relative' }}>
-          {[
-            { to: '/reid-dashboard', icon: '🧬', label: 'Re-ID Hub', color: '#6366f1' },
-            { to: '/reid-search', icon: '🔍', label: 'Person Search', color: '#06b6d4' },
-            { to: '/attributes', icon: '🏷️', label: 'Attributes', color: '#10b981' },
-            { to: '/gait', icon: '🚶', label: 'Gait Analysis', color: '#8b5cf6' },
-          ].map(item => (
-            <div
-              key={item.to}
-              onClick={() => navigate(item.to)}
-              style={{
-                padding: '14px 16px', borderRadius: 12, cursor: 'pointer',
-                background: `${item.color}08`, border: `1px solid ${item.color}20`,
-                display: 'flex', alignItems: 'center', gap: 10,
-                transition: 'all 0.25s var(--ease-out)',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = `${item.color}15`; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = `${item.color}08`; e.currentTarget.style.transform = ''; }}
-            >
-              <span style={{ fontSize: 20 }}>{item.icon}</span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{item.label}</span>
-            </div>
-          ))}
-        </div>
       </div>
 
       {/* Charts */}

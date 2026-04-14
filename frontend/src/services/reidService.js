@@ -12,6 +12,13 @@ export const searchReid = async (formData) => {
   return res.data;
 };
 
+export const searchMultimodal = async (formData) => {
+  const res = await api.post('/reid/multimodal-search', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return res.data;
+};
+
 export const getGallery = async () => {
   const res = await api.get('/reid/gallery');
   return res.data;

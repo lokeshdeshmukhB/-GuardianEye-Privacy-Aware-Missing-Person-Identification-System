@@ -1,7 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiUser, FiMapPin, FiCalendar, FiActivity, FiShield, FiEdit3, FiCpu } from 'react-icons/fi';
+import { FiArrowLeft, FiUser, FiMapPin, FiCalendar, FiActivity, FiEdit3, FiCpu } from 'react-icons/fi';
 import { getCase, updateCaseStatus } from '../services/api';
+
+/** Backend origin for `/uploads/...` URLs (same pattern as Re-ID page). */
+function getApiOrigin() {
+  const base = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+  return base.replace(/\/api\/?$/, '');
+}
 
 const MAX_POLL = 10;
 const POLL_MS = 3000;
@@ -57,10 +63,6 @@ const CaseDetail = () => {
   if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}><div className="spinner" /></div>;
   if (error || !caseData) return <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-muted)' }}>{error || 'Case not found'}</div>;
 
-  const attrs = caseData.attributes?.raw || {};
-  const attrEntries = Object.entries(attrs).slice(0, 12);
-  const embedding = caseData.reidEmbedding || [];  // full 512-dim
-
   return (
     <div className="fade-in">
       <button onClick={() => navigate(-1)}
@@ -85,15 +87,47 @@ const CaseDetail = () => {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-        {/* Left */}
+        {/* Left: photos, then gait */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Photos */}
           <div className="card" style={{ padding: 20 }}>
             <h4 style={{ marginBottom: 14, fontSize: 14, fontWeight: 600 }}>Photos</h4>
             {caseData.photos?.length > 0 ? (
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {caseData.photos.map((p, i) => (
-                  <img key={i} src={`http://localhost:5001${p}`} alt="" style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--border)' }} />
+                  <div
+                    key={i}
+                    style={{
+                      width: '100%',
+                      maxWidth: 360,
+                      margin: '0 auto',
+                      aspectRatio: '1 / 1',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: 10,
+                      boxSizing: 'border-box',
+                      background: 'var(--surface-2)',
+                      borderRadius: 12,
+                      border: '2px dashed rgba(6, 182, 212, 0.25)',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <img
+                      src={`${getApiOrigin()}${p}`}
+                      alt=""
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        width: 'auto',
+                        height: 'auto',
+                        objectFit: 'contain',
+                        borderRadius: 10,
+                        display: 'block',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
+                      }}
+                    />
+                  </div>
                 ))}
               </div>
             ) : (
@@ -104,7 +138,55 @@ const CaseDetail = () => {
             )}
           </div>
 
-          {/* Info */}
+          {/* Gait Recognition */}
+          <div className="card" style={{ padding: 20 }}>
+            <h4 style={{ marginBottom: 14, fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>🚶 Gait Recognition</h4>
+            <div style={{ padding: '16px 12px', background: 'var(--surface-2)', borderRadius: 10 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 12 }}>
+                Match this person by their walking gait pattern using the <strong>SimpleGaitSet</strong> deep learning model.
+                Upload a sequence of <strong>silhouette frames</strong> from surveillance footage.
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <a
+                  href="/gait"
+                  style={{
+                    flex: 1,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    padding: '8px 14px',
+                    background: 'rgba(139,92,246,0.15)',
+                    border: '1px solid rgba(139,92,246,0.4)',
+                    borderRadius: 8, color: '#a78bfa',
+                    fontSize: 12, fontWeight: 600,
+                    textDecoration: 'none',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s'
+                  }}
+                >
+                  🚶 Open Gait Matcher
+                </a>
+                <a
+                  href="/reid-search"
+                  style={{
+                    flex: 1,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    padding: '8px 14px',
+                    background: 'rgba(6,182,212,0.1)',
+                    border: '1px solid rgba(6,182,212,0.3)',
+                    borderRadius: 8, color: '#22d3ee',
+                    fontSize: 12, fontWeight: 600,
+                    textDecoration: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🔍 Re-ID Search
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right — case info + optional PA-100K */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="card" style={{ padding: 20 }}>
             <h4 style={{ marginBottom: 14, fontSize: 14, fontWeight: 600 }}>Case Information</h4>
             {[
@@ -124,24 +206,8 @@ const CaseDetail = () => {
               </div>
             ))}
           </div>
-
-          {/* Access Log */}
-          <div className="card" style={{ padding: 20 }}>
-            <h4 style={{ marginBottom: 14, fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}><FiShield /> Access Log</h4>
-            {caseData.accessLog?.slice(-5).reverse().map((log, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
-                <span>{log.officer} — {log.action}</span>
-                <span style={{ color: 'var(--text-muted)' }}>{new Date(log.timestamp).toLocaleTimeString()}</span>
-              </div>
-            ))}
-            {(!caseData.accessLog || caseData.accessLog.length === 0) && (
-              <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No access records yet</p>
-            )}
-          </div>
-        </div>
-
-        {/* Right — AI Attributes */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* PA-100K Attributes card — commented out (set to `true` to show again) */}
+          {false && (
           <div className="card" style={{ padding: 20 }}>
             <h4 style={{ marginBottom: 16, fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}><FiActivity /> PA-100K Attributes</h4>
 
@@ -270,81 +336,7 @@ const CaseDetail = () => {
               </div>
             )}
           </div>
-
-          {/* OSNet Re-ID Embedding Visualization */}
-          <div className="card" style={{ padding: 20 }}>
-            <h4 style={{ marginBottom: 14, fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <FiCpu /> OSNet Re-ID Embedding
-              {embedding.length > 0 && <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>({embedding.length}-dim · L2 normalized)</span>}
-            </h4>
-            {embedding.length > 0 ? (
-              <div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, marginBottom: 10 }}>
-                  {embedding.map((v, i) => {
-                    const norm = Math.abs(v) / 2;
-                    return (
-                      <div key={i} style={{
-                        width: 8, height: 8, borderRadius: 2,
-                        background: v > 0 ? `rgba(99,102,241,${Math.min(norm, 1)})` : `rgba(239,68,68,${Math.min(norm, 1)})`,
-                        title: `dim[${i}]: ${v.toFixed(4)}`
-                      }} />
-                    );
-                  })}
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                  L2-normalized vector for cross-camera person matching
-                </div>
-              </div>
-            ) : (
-              <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No Re-ID embedding available yet</p>
-            )}
-          </div>
-
-          {/* Gait Recognition */}
-          <div className="card" style={{ padding: 20 }}>
-            <h4 style={{ marginBottom: 14, fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>🚶 Gait Recognition</h4>
-            <div style={{ padding: '16px 12px', background: 'var(--surface-2)', borderRadius: 10 }}>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 12 }}>
-                Match this person by their walking gait pattern using the <strong>SimpleGaitSet</strong> deep learning model.
-                Upload a sequence of <strong>silhouette frames</strong> from surveillance footage.
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <a
-                  href="/gait"
-                  style={{
-                    flex: 1,
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    padding: '8px 14px',
-                    background: 'rgba(139,92,246,0.15)',
-                    border: '1px solid rgba(139,92,246,0.4)',
-                    borderRadius: 8, color: '#a78bfa',
-                    fontSize: 12, fontWeight: 600,
-                    textDecoration: 'none',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s'
-                  }}
-                >
-                  🚶 Open Gait Matcher
-                </a>
-                <a
-                  href="/reid-search"
-                  style={{
-                    flex: 1,
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    padding: '8px 14px',
-                    background: 'rgba(6,182,212,0.1)',
-                    border: '1px solid rgba(6,182,212,0.3)',
-                    borderRadius: 8, color: '#22d3ee',
-                    fontSize: 12, fontWeight: 600,
-                    textDecoration: 'none',
-                    cursor: 'pointer'
-                  }}
-                >
-                  🔍 Re-ID Search
-                </a>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

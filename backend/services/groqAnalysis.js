@@ -186,6 +186,123 @@ Respond with ONLY a valid JSON array. No markdown, no extra text.`;
   }
 }
 
+function _fmtStructured(label, s) {
+  if (!s) return `${label}: (unknown)`;
+  return `${label}: gender=${s.gender || '—'}; age=${s.age || '—'}; upper=${s.upperBodyClothing || '—'}; lower=${s.lowerBodyClothing || '—'}; hat=${s.hasHat ? 'yes' : 'no'}; glasses=${s.hasGlasses ? 'yes' : 'no'}; backpack=${s.hasBackpack ? 'yes' : 'no'}; bag=${s.hasBag ? 'yes' : 'no'}; boots=${s.wearingBoots ? 'yes' : 'no'}; orientation=${s.orientation || '—'}`;
+}
+
+/**
+ * Multimodal (OSNet + PA-100K fusion) gallery match analysis.
+ */
+async function analyzeMultimodalMatches(matches, queryStructured) {
+  if (!matches || matches.length === 0) return null;
+
+  const probe = _fmtStructured('QUERY', queryStructured);
+
+  const matchLines = matches.map((m, i) => {
+    const fus = m.fusion_score ?? m.similarity ?? 0;
+    const reid = m.reid_score ?? 0;
+    const attr = m.attribute_score ?? 0;
+    const s = m.structured_attributes || {};
+    return `Match #${i + 1}: person_id="${m.person_id}" | fusion=${(fus * 100).toFixed(1)}% | reid=${(reid * 100).toFixed(1)}% | attr=${(attr * 100).toFixed(1)}% | image_path="${m.image_path}"
+  ${_fmtStructured('  Gallery', s)}`;
+  }).join('\n');
+
+  const prompt = `You are a forensic AI assistant for GuardianEye multimodal person search.
+Ranking uses weighted fusion: fusion_score = w_reid * OSNet cosine + w_attr * PA-100K attribute cosine (L2-normalized probability vectors).
+
+${probe}
+
+MATCHES (ranked by fusion score):
+${matchLines}
+
+For each match, return a JSON object with:
+- "person_id": string (must match exactly)
+- "likelihood": "HIGH" | "MEDIUM" | "LOW" (use fusion score: >0.75 HIGH, 0.5-0.75 MEDIUM, <0.5 LOW)
+- "verdict": one-sentence decision comparing query vs gallery structured attributes and scores
+- "explanation": 2-3 sentences on how OSNet appearance and PA-100K attributes support or weaken the match
+- "recommendation": short next step (e.g. verify identity, collect more angles)
+
+Respond with ONLY a valid JSON array. No markdown, no extra text.`;
+
+  try {
+    const completion = await groq.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: MODEL,
+      temperature: 0.2,
+      max_tokens: 2000,
+    });
+    let raw = completion.choices[0]?.message?.content?.trim() || '[]';
+    if (raw.startsWith('```')) raw = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+    const arr = raw.match(/\[[\s\S]*\]/);
+    return arr ? JSON.parse(arr[0]) : [];
+  } catch (err) {
+    console.error('[Groq] analyzeMultimodalMatches error:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Analyse multimodal gallery matches (fusion of appearance, attributes, gait).
+ */
+async function analyzeMultimodalResults(matches, querySummary) {
+  if (!matches || matches.length === 0) return null;
+
+  const q =
+    querySummary && typeof querySummary === 'object'
+      ? JSON.stringify(querySummary, null, 2)
+      : String(querySummary || '');
+
+  const caseLines = matches
+    .map((m, i) => {
+      const fs = m.fusion_score != null ? (m.fusion_score * 100).toFixed(1) : 'n/a';
+      const ap = m.appearance_score != null ? (m.appearance_score * 100).toFixed(1) : (m.similarity * 100).toFixed(1);
+      const at = m.attribute_score != null ? (m.attribute_score * 100).toFixed(1) : 'n/a';
+      const g = m.gait_score != null ? (m.gait_score * 100).toFixed(1) : 'n/a';
+      return (
+        `Match #${i + 1}: person_id="${m.person_id}" | fusion_score=${fs}% | ` +
+        `appearance=${ap}% | attributes=${at}% | gait=${g}% | image_path="${m.image_path}"`
+      );
+    })
+    .join('\n');
+
+  const prompt = `You are a forensic AI assistant for a multimodal Person Re-Identification system.
+The system fused three signals: (1) appearance — OSNet 512-dim cosine similarity, (2) attributes — PA-100K pedestrian attribute agreement, (3) gait — GaitSet embedding cosine similarity between query and candidate images.
+
+QUERY STRUCTURED ATTRIBUTES (probe):
+${q || 'Not provided'}
+
+GALLERY MATCHES (ranked by fusion_score — weighted combination of appearance, attributes, gait):
+${caseLines}
+
+For each match, return a JSON object with:
+- "person_id": string
+- "likelihood": "HIGH" | "MEDIUM" | "LOW" (use fusion_score: >75% HIGH, 50-75% MEDIUM, <50% LOW)
+- "verdict": one-sentence decision
+- "explanation": 2-3 sentences explaining fusion_score and how appearance vs attributes vs gait support or weaken the match
+- "recommendation": short action recommendation
+
+Mention fusion_score explicitly and contrast appearance (visual embedding) with attribute agreement and gait where useful.
+
+Respond with ONLY a valid JSON array. No markdown, no extra text.`;
+
+  try {
+    const completion = await groq.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: MODEL,
+      temperature: 0.2,
+      max_tokens: 2000,
+    });
+    let raw = completion.choices[0]?.message?.content?.trim() || '[]';
+    if (raw.startsWith('```')) raw = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+    const arr = raw.match(/\[[\s\S]*\]/);
+    return arr ? JSON.parse(arr[0]) : [];
+  } catch (err) {
+    console.error('[Groq] analyzeMultimodalResults error:', err.message);
+    return null;
+  }
+}
+
 /**
  * Generate plain-language description of PA-100K attribute predictions.
  */
@@ -269,6 +386,8 @@ Return ONLY a valid JSON array. No markdown, no extra text.`;
 module.exports = {
   analyzeSearchResults,
   analyzeReidResults,
+  analyzeMultimodalMatches,
+  analyzeMultimodalResults,
   analyzeAttributes,
   analyzeGaitResults,
   distanceLabel,

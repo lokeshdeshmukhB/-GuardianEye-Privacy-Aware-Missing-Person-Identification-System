@@ -6,6 +6,8 @@
   display: flex;
   min-height: 100vh;
   background: var(--bg);
+  /* Sidebar is position:fixed; keep horizontal scroll on main only so nav does not shift */
+  min-width: 0;
 }
 
 /* ── Sidebar ── */
@@ -309,6 +311,7 @@
 /* ── Page content ── */
 .page-content {
   flex: 1;
+  min-width: 0;
   padding: 32px;
 }
 
