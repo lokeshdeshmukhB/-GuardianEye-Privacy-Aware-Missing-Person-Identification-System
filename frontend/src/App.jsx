@@ -4,12 +4,9 @@ import Layout from './components/Layout';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import SearchPage from './pages/SearchPage';
 import ReportCase from './pages/ReportCase';
 import CaseDetail from './pages/CaseDetail';
 import AdminPanel from './pages/AdminPanel';
-import PrivacyPage from './pages/PrivacyPage';
 
 // ── Re-ID System Pages ───────────────────────────────────────────────────────
 import ReIDDashboard from './pages/ReIDDashboard';
@@ -27,7 +24,7 @@ const Private = ({ children }) => {
 const AdminRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return null;
-  return user?.role === 'admin' ? children : <Navigate to="/dashboard" replace />;
+  return user?.role === 'admin' ? children : <Navigate to="/reid-dashboard" replace />;
 };
 
 function App() {
@@ -39,19 +36,19 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route element={<Layout />}>
-            <Route path="/dashboard" element={<Private><Dashboard /></Private>} />
-            <Route path="/search" element={<Private><SearchPage /></Private>} />
             <Route path="/report" element={<Private><ReportCase /></Private>} />
             <Route path="/cases/:id" element={<Private><CaseDetail /></Private>} />
             <Route path="/admin" element={<Private><AdminRoute><AdminPanel /></AdminRoute></Private>} />
-            <Route path="/privacy" element={<PrivacyPage />} />
 
             {/* ── Re-ID System ───────────────────────────────────────────── */}
-            <Route path="/reid-dashboard" element={<ReIDDashboard />} />
-            <Route path="/reid-search" element={<ReIDSearch />} />
-            <Route path="/attributes" element={<AttributeRecognition />} />
-            <Route path="/gait" element={<GaitRecognition />} />
-            <Route path="/reid-gallery" element={<GalleryPage />} />
+            <Route path="/reid-dashboard" element={<Private><ReIDDashboard /></Private>} />
+            <Route path="/reid-search" element={<Private><ReIDSearch /></Private>} />
+            <Route path="/attributes" element={<Private><AttributeRecognition /></Private>} />
+            <Route path="/gait" element={<Private><GaitRecognition /></Private>} />
+            <Route path="/reid-gallery" element={<Private><GalleryPage /></Private>} />
+            <Route path="/dashboard" element={<Navigate to="/reid-dashboard" replace />} />
+            <Route path="/search" element={<Navigate to="/reid-dashboard" replace />} />
+            <Route path="/privacy" element={<Navigate to="/reid-dashboard" replace />} />
           </Route>
         </Routes>
       </BrowserRouter>

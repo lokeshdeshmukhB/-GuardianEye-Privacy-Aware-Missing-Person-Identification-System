@@ -18,7 +18,7 @@ const Login = () => {
     try {
       const { data } = await loginApi(form);
       login(data.token, data.user);
-      navigate('/dashboard');
+      navigate('/reid-dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
     } finally {

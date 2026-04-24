@@ -18,7 +18,7 @@ const Register = () => {
     try {
       const { data } = await registerApi(form);
       login(data.token, data.user);
-      navigate('/dashboard');
+      navigate('/reid-dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
     } finally {

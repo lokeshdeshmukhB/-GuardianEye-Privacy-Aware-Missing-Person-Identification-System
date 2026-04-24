@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  FiHome, FiSearch, FiPlusCircle, FiShield, FiLogOut, FiMenu,
+  FiShield, FiLogOut, FiMenu,
   FiUsers, FiActivity, FiCpu, FiGrid, FiTarget, FiLayers
 } from 'react-icons/fi';
 import './Layout.css';
@@ -17,12 +17,7 @@ const Layout = () => {
     navigate('/login');
   };
 
-  const mainNavItems = [
-    { to: '/dashboard', icon: <FiHome className="nav-item-icon" />, label: 'Dashboard' },
-    { to: '/search', icon: <FiSearch className="nav-item-icon" />, label: 'AI Search' },
-    { to: '/report', icon: <FiPlusCircle className="nav-item-icon" />, label: 'Report Case' },
-    { to: '/privacy', icon: <FiShield className="nav-item-icon" />, label: 'Privacy' },
-  ];
+  const mainNavItems = [];
 
   const reidNavItems = [
     { to: '/reid-dashboard', icon: <FiActivity className="nav-item-icon" />, label: 'Re-ID Hub' },
@@ -42,7 +37,7 @@ const Layout = () => {
     <div className="app-shell">
       {/* Sidebar */}
       <aside className={`sidebar ${expanded ? 'expanded' : 'collapsed'}`}>
-        <div className="sidebar-logo" onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer' }}>
+        <div className="sidebar-logo" onClick={() => navigate('/reid-dashboard')} style={{ cursor: 'pointer' }}>
           <div className="sidebar-logo-icon">
             <FiShield />
           </div>

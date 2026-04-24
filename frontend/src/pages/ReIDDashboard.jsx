@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getStats } from '../services/gaitService';
 import useStore from '../store/useStore';
-import { FiActivity, FiSearch, FiUsers, FiCpu, FiTarget, FiLayers, FiGrid, FiArrowRight, FiZap } from 'react-icons/fi';
+import { FiActivity, FiSearch, FiUsers, FiCpu, FiTarget, FiLayers, FiGrid, FiArrowRight, FiZap, FiPlusCircle } from 'react-icons/fi';
 
 /* ═══════════ Sub Components ═══════════ */
 
@@ -113,20 +113,31 @@ export default function ReIDDashboard() {
 
       {/* ── Header ── */}
       <div style={{ marginBottom: 32 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div className="page-icon" style={{
-            background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.1))',
-            border: '1px solid rgba(99,102,241,0.3)',
-            boxShadow: '0 0 30px rgba(99,102,241,0.15)'
-          }}>🧬</div>
-          <div>
-            <h1 style={{ fontSize: 28, fontWeight: 900, letterSpacing: '-0.5px' }}>
-              Re-ID <span className="gradient-text">Command Center</span>
-            </h1>
-            <p style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 4 }}>
-              Person Re-Identification System — Multi-Model Intelligence Hub
-            </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div className="page-icon" style={{
+              background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.1))',
+              border: '1px solid rgba(99,102,241,0.3)',
+              boxShadow: '0 0 30px rgba(99,102,241,0.15)'
+            }}>🧬</div>
+            <div>
+              <h1 style={{ fontSize: 28, fontWeight: 900, letterSpacing: '-0.5px' }}>
+                Re-ID <span className="gradient-text">Command Center</span>
+              </h1>
+              <p style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 4 }}>
+                Person Re-Identification System — Multi-Model Intelligence Hub
+              </p>
+            </div>
           </div>
+          <button
+            className="btn-primary"
+            type="button"
+            onClick={() => navigate('/report')}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}
+          >
+            <FiPlusCircle />
+            Report Case
+          </button>
         </div>
       </div>
 
@@ -201,32 +212,6 @@ export default function ReIDDashboard() {
             color="#8b5cf6"
           />
         </div>
-      </div>
-
-      {/* ── Gallery Management ── */}
-      <div
-        className="card card-glow"
-        onClick={() => navigate('/reid-gallery')}
-        style={{
-          padding: 22, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          cursor: 'pointer', marginBottom: 28,
-          background: 'linear-gradient(135deg, var(--surface), rgba(245,158,11,0.03))',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{
-            width: 44, height: 44, borderRadius: 12,
-            background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20
-          }}>👥</div>
-          <div>
-            <p style={{ fontWeight: 700, fontSize: 15 }}>Gallery Management</p>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-              Add, view or remove persons from the Re-ID gallery
-            </p>
-          </div>
-        </div>
-        <FiArrowRight style={{ fontSize: 20, color: 'var(--text-muted)' }} />
       </div>
 
       {/* ── Recent Searches ── */}
