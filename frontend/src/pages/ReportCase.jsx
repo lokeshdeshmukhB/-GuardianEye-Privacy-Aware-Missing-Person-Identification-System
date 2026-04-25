@@ -46,6 +46,7 @@ const ReportCase = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name) { setError('Name is required'); return; }
+    if (!photo) { setError('Reference photo is required'); return; }
     setLoading(true); setError('');
     try {
       const fd = new FormData();
@@ -137,7 +138,9 @@ const ReportCase = () => {
               style={{ resize: 'vertical' }} />
           </div>
 
-          <h4 style={{ marginBottom: 12, marginTop: 24, fontSize: 14, fontWeight: 600 }}>Reference photo (optional)</h4>
+          <h4 style={{ marginBottom: 12, marginTop: 24, fontSize: 14, fontWeight: 600 }}>
+            Reference photo <span style={{ color: 'var(--danger)' }}>*</span>
+          </h4>
           <div
             {...getRootProps()}
             className={`upload-zone${isDragActive ? ' drag-over' : ''}`}

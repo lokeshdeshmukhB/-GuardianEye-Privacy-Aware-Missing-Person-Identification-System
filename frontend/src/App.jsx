@@ -12,8 +12,7 @@ import AdminPanel from './pages/AdminPanel';
 import ReIDDashboard from './pages/ReIDDashboard';
 import ReIDSearch from './pages/ReIDSearch';
 import AttributeRecognition from './pages/AttributeRecognition';
-import GaitRecognition from './pages/GaitRecognition';
-import GalleryPage from './pages/GalleryPage';
+import MOT17TrackReID from './pages/MOT17TrackReID';
 
 const Private = ({ children }) => {
   const { user, loading } = useAuth();
@@ -44,8 +43,8 @@ function App() {
             <Route path="/reid-dashboard" element={<Private><ReIDDashboard /></Private>} />
             <Route path="/reid-search" element={<Private><ReIDSearch /></Private>} />
             <Route path="/attributes" element={<Private><AttributeRecognition /></Private>} />
-            <Route path="/gait" element={<Private><GaitRecognition /></Private>} />
-            <Route path="/reid-gallery" element={<Private><GalleryPage /></Private>} />
+            <Route path="/gait" element={<Navigate to="/reid-dashboard" replace />} />
+            <Route path="/mot17-track-reid" element={<Private><MOT17TrackReID /></Private>} />
             <Route path="/dashboard" element={<Navigate to="/reid-dashboard" replace />} />
             <Route path="/search" element={<Navigate to="/reid-dashboard" replace />} />
             <Route path="/privacy" element={<Navigate to="/reid-dashboard" replace />} />

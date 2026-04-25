@@ -44,7 +44,7 @@ app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/reid', require('./routes/reidRoutes'));
 app.use('/api/attributes', require('./routes/attributeRoutes'));
 app.use('/api/gait', require('./routes/gaitRoutes'));
-app.use('/api/gallery', require('./routes/galleryRoutes'));
+app.use('/api/mot17-track-reid', require('./routes/mot17TrackRoutes'));
 app.use('/api/stats', require('./routes/statsRoutes'));
 
 // Health check

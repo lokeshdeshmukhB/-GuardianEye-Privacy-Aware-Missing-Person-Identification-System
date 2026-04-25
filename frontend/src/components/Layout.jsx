@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   FiShield, FiLogOut, FiMenu,
-  FiUsers, FiActivity, FiCpu, FiGrid, FiTarget, FiLayers
+  FiUsers, FiActivity, FiTarget, FiLayers, FiFilm
 } from 'react-icons/fi';
 import './Layout.css';
 
@@ -17,19 +17,15 @@ const Layout = () => {
     navigate('/login');
   };
 
-  const mainNavItems = [];
-
   const reidNavItems = [
+    ...(user?.role === 'admin'
+      ? [{ to: '/admin', icon: <FiUsers className="nav-item-icon" />, label: 'Admin' }]
+      : []),
     { to: '/reid-dashboard', icon: <FiActivity className="nav-item-icon" />, label: 'Re-ID Hub' },
     { to: '/reid-search', icon: <FiTarget className="nav-item-icon" />, label: 'Person Re-ID' },
     { to: '/attributes', icon: <FiLayers className="nav-item-icon" />, label: 'Attributes' },
-    { to: '/gait', icon: <FiCpu className="nav-item-icon" />, label: 'Gait Analysis' },
-    { to: '/reid-gallery', icon: <FiGrid className="nav-item-icon" />, label: 'Gallery' },
+    { to: '/mot17-track-reid', icon: <FiFilm className="nav-item-icon" />, label: 'Track Re-ID' },
   ];
-
-  if (user?.role === 'admin') {
-    mainNavItems.push({ to: '/admin', icon: <FiUsers className="nav-item-icon" />, label: 'Admin' });
-  }
 
   const initial = user?.name?.charAt(0).toUpperCase() || 'U';
 
@@ -45,21 +41,6 @@ const Layout = () => {
         </div>
 
         <nav className="sidebar-nav">
-          {/* Main section */}
-          <div className="nav-section-label">Main</div>
-          {mainNavItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
-            >
-              {item.icon}
-              <span className="nav-item-label">{item.label}</span>
-            </NavLink>
-          ))}
-
-          {/* Re-ID System section */}
-          <div className="nav-divider" />
           <div className="nav-section-label">Re-ID System</div>
           {reidNavItems.map((item) => (
             <NavLink

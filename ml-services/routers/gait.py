@@ -62,3 +62,4 @@ async def add(frames: List[UploadFile] = File(...), person_id: str = Form(...)):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getStats } from '../services/gaitService';
+import { getStats } from '../services/reidService';
 import useStore from '../store/useStore';
-import { FiActivity, FiSearch, FiUsers, FiCpu, FiTarget, FiLayers, FiGrid, FiArrowRight, FiZap, FiPlusCircle } from 'react-icons/fi';
+import { FiActivity, FiSearch, FiUsers, FiCpu, FiTarget, FiLayers, FiGrid, FiArrowRight, FiZap, FiPlusCircle, FiFilm } from 'react-icons/fi';
 
 /* ═══════════ Sub Components ═══════════ */
 
@@ -169,16 +169,15 @@ export default function ReIDDashboard() {
             </span>
           )}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, position: 'relative' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, position: 'relative' }}>
           <ModelStatusBadge label="OSNet Re-ID" online={ml?.models?.osnet_reid} icon="🔍" />
           <ModelStatusBadge label="PA-100K Attr" online={ml?.models?.pa100k_attributes} icon="🏷️" />
-          <ModelStatusBadge label="SimpleGaitSet" online={ml?.models?.gaitset} icon="🚶" />
         </div>
       </div>
 
       {/* ── Stats ── */}
       <div className="grid-4 stagger" style={{ marginBottom: 28 }}>
-        <StatCard label="Gallery Persons" value={stats?.totalPersons} icon={FiUsers} color="#6366f1" loading={loading} />
+        <StatCard label="Indexed Persons" value={stats?.totalPersons} icon={FiUsers} color="#6366f1" loading={loading} />
         <StatCard label="Total Searches" value={stats?.totalSearches} icon={FiSearch} color="#06b6d4" loading={loading} />
         <StatCard label="Searches Today" value={stats?.searchesToday} icon={FiActivity} color="#10b981" loading={loading} />
         <StatCard label="Re-ID Searches" value={byType.reid ?? 0} icon={FiCpu} color="#f59e0b" loading={loading} />
@@ -189,7 +188,7 @@ export default function ReIDDashboard() {
         <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 16 }}>
           Quick Actions
         </p>
-        <div className="grid-3 stagger">
+        <div className="grid-3 stagger" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
           <FeatureButton
             to="/reid-search"
             label="Person Re-ID Search"
@@ -205,11 +204,11 @@ export default function ReIDDashboard() {
             color="#10b981"
           />
           <FeatureButton
-            to="/gait"
-            label="Gait Recognition"
-            desc="SimpleGaitSet silhouette sequence matching — identify by walking pattern"
-            icon="🚶"
-            color="#8b5cf6"
+            to="/mot17-track-reid"
+            label="Track Re-ID"
+            desc="Precomputed appearance + PA-100K + gait embeddings — fused top-5 track match with frame playback"
+            icon={<FiFilm style={{ fontSize: 22, color: '#f472b6' }} />}
+            color="#f472b6"
           />
         </div>
       </div>

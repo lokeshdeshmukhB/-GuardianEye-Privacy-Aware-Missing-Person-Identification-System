@@ -6,13 +6,12 @@ const FormData = require('form-data');
 const axios = require('axios');
 const multer = require('multer');
 const SearchHistory = require('../models/SearchHistory');
-const Person = require('../models/Person');
 const { analyzeMultimodalMatches, analyzeMultimodalResults } = require('../services/groqAnalysis');
 const { resolveGalleryImagePath } = require('../utils/galleryImageResolver');
 
 const upload = multer({ dest: path.join(__dirname, '../uploads/') });
 
-// GET /api/reid/image?path=datasets/0000001.jpg — serve gallery file for Re-ID UI thumbnails
+// GET /api/reid/image?path=datasets/0000001.jpg — serve Re-ID match image for UI thumbnails
 router.get('/image', (req, res) => {
   try {
     const rel = req.query.path;
@@ -170,72 +169,6 @@ router.post('/multimodal-search', upload.single('image'), async (req, res) => {
     });
   } catch (err) {
     console.error('[Reid] Multimodal search error:', err.message);
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// POST /api/reid/gallery — proxy to FastAPI to add image to Re-ID gallery, and save to MongoDB
-router.post('/gallery', upload.single('image'), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ message: 'image file required' });
-    const personId = req.body.personId || req.body.person_id;
-    if (!personId) return res.status(400).json({ message: 'personId required' });
-
-    const form = new FormData();
-    form.append('image', fs.createReadStream(req.file.path));
-    form.append('person_id', personId);
-    form.append('image_path', `/uploads/${req.file.filename}`);
-
-    const mlRes = await axios.post(`${ML_URL()}/reid/add-to-gallery`, form, {
-      headers: form.getHeaders(),
-      timeout: 30000,
-    });
-
-    let person = await Person.findOne({ personId });
-    if (!person) {
-      person = new Person({
-        personId,
-        name: req.body.name || personId,
-        galleryImages: [],
-      });
-    }
-    person.galleryImages.push(mlRes.data.image_path);
-    person.embeddingIndex = mlRes.data.embedding_index;
-    person.attributes = { ...person.attributes, gender: req.body.gender, age: req.body.age };
-    await person.save();
-
-    res.json(mlRes.data);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// GET /api/reid/gallery
-router.get('/gallery', async (req, res) => {
-  try {
-    const persons = await Person.find({ embeddingIndex: { $gte: 0 } }).sort({ createdAt: -1 });
-    const formatted = persons.map(p => ({
-      personId: p.personId,
-      name: p.name,
-      gender: p.attributes?.gender,
-      age: p.attributes?.age,
-      photoUrl: p.galleryImages[0],
-      embedding: true,
-      embeddingCount: p.galleryImages.length,
-      createdAt: p.createdAt
-    }));
-    res.json({ persons: formatted });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// DELETE /api/reid/gallery/:personId
-router.delete('/gallery/:personId', async (req, res) => {
-  try {
-    await Person.deleteOne({ personId: req.params.personId });
-    res.json({ message: 'Deleted from gallery' });
-  } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });

@@ -87,7 +87,7 @@ const CaseDetail = () => {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-        {/* Left: photos, then gait */}
+        {/* Left: photos */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Photos */}
           <div className="card" style={{ padding: 20 }}>
@@ -138,51 +138,6 @@ const CaseDetail = () => {
             )}
           </div>
 
-          {/* Gait Recognition */}
-          <div className="card" style={{ padding: 20 }}>
-            <h4 style={{ marginBottom: 14, fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>🚶 Gait Recognition</h4>
-            <div style={{ padding: '16px 12px', background: 'var(--surface-2)', borderRadius: 10 }}>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 12 }}>
-                Match this person by their walking gait pattern using the <strong>SimpleGaitSet</strong> deep learning model.
-                Upload a sequence of <strong>silhouette frames</strong> from surveillance footage.
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <a
-                  href="/gait"
-                  style={{
-                    flex: 1,
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    padding: '8px 14px',
-                    background: 'rgba(139,92,246,0.15)',
-                    border: '1px solid rgba(139,92,246,0.4)',
-                    borderRadius: 8, color: '#a78bfa',
-                    fontSize: 12, fontWeight: 600,
-                    textDecoration: 'none',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s'
-                  }}
-                >
-                  🚶 Open Gait Matcher
-                </a>
-                <a
-                  href="/reid-search"
-                  style={{
-                    flex: 1,
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    padding: '8px 14px',
-                    background: 'rgba(6,182,212,0.1)',
-                    border: '1px solid rgba(6,182,212,0.3)',
-                    borderRadius: 8, color: '#22d3ee',
-                    fontSize: 12, fontWeight: 600,
-                    textDecoration: 'none',
-                    cursor: 'pointer'
-                  }}
-                >
-                  🔍 Re-ID Search
-                </a>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Right — case info + optional PA-100K */}
@@ -338,6 +293,31 @@ const CaseDetail = () => {
           </div>
           )}
         </div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 0 4px' }}>
+        <button
+          type="button"
+          onClick={() =>
+            navigate('/reid-search', {
+              state: {
+                prefillImagePath: caseData.photos?.[0] || null,
+              },
+            })
+          }
+          style={{
+            width: 'min(100%, 260px)',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            padding: '8px 14px',
+            background: 'rgba(6,182,212,0.1)',
+            border: '1px solid rgba(6,182,212,0.3)',
+            borderRadius: 8, color: '#22d3ee',
+            fontSize: 12, fontWeight: 600,
+            textDecoration: 'none',
+            cursor: 'pointer'
+          }}
+        >
+          🔍 Re-ID Search
+        </button>
       </div>
     </div>
   );

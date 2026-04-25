@@ -1,4 +1,5 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import { searchReid } from '../services/reidService';
 import useStore from '../store/useStore';
@@ -10,7 +11,7 @@ function getApiOrigin() {
   return base.replace(/\/api\/?$/, '');
 }
 
-/** URL to display a gallery match image_path from the API. */
+/** URL to display a matched image_path from the API. */
 function galleryMatchImageUrl(imagePath) {
   if (!imagePath) return '';
   const p = String(imagePath).trim();
@@ -551,7 +552,8 @@ const MatchCard = ({ match, rank, ai, compact }) => {
 
 export default function ReIDSearch() {
   const { reidResults, setReidResults } = useStore();
-  /** Local only — global `loading` is shared with Gallery/Attributes/Gait and can block this page's dropzone. */
+  const location = useLocation();
+  /** Local only — global `loading` is shared with Attributes and can block this page's dropzone. */
   const [searchLoading, setSearchLoading] = useState(false);
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState(null);
@@ -623,6 +625,46 @@ export default function ReIDSearch() {
     setReidResults(null);
     setError(null);
   };
+
+  useEffect(() => {
+    const prefillImagePath = location.state?.prefillImagePath;
+    if (!prefillImagePath || lastFileRef.current) return;
+
+    let revoked = false;
+
+    const prefillFromCasePhoto = async () => {
+      try {
+        const imageUrl = galleryMatchImageUrl(prefillImagePath);
+        if (!imageUrl) return;
+
+        const response = await fetch(imageUrl);
+        if (!response.ok) throw new Error('Unable to load case photo');
+
+        const blob = await response.blob();
+        const ext = blob.type?.split('/')[1] || 'jpg';
+        const file = new File([blob], `case-photo.${ext}`, {
+          type: blob.type || 'image/jpeg',
+        });
+
+        lastFileRef.current = file;
+        setPreview((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return URL.createObjectURL(file);
+        });
+        await runSearch(file, topK);
+      } catch (err) {
+        if (!revoked) {
+          setError(err.message || 'Failed to prefill image from case');
+        }
+      }
+    };
+
+    prefillFromCasePhoto();
+
+    return () => {
+      revoked = true;
+    };
+  }, [location.state, runSearch, topK]);
 
   const queryStructured = reidResults?.query_structured_attributes;
   const hasMatchTable = Boolean(reidResults?.matches?.length);
@@ -776,7 +818,7 @@ export default function ReIDSearch() {
           alignItems: 'start',
         }}
       >
-        {/* Col 1 — with table: compact query thumb top-left (same band as Gallery matches); more width for table */}
+        {/* Col 1 — with table: compact query thumb top-left (same band as match headers); more width for table */}
         {hasMatchTable ? (
           <div
             style={{
@@ -913,13 +955,13 @@ export default function ReIDSearch() {
               <div style={{ fontSize: 52, marginBottom: 16, opacity: 0.75 }}>🎯</div>
               <h2 style={{ fontSize: 'clamp(18px, 3vw, 22px)', fontWeight: 800, marginBottom: 12, lineHeight: 1.3 }}>Upload a query image</h2>
               <p style={{ color: 'var(--text-muted)', fontSize: 14, maxWidth: 440, margin: '0 auto', lineHeight: 1.65 }}>
-                Results appear here with gallery matches, scores, and attribute comparison. Use full-body person crops when possible.
+                Results appear here with ranked matches, scores, and attribute comparison. Use full-body person crops when possible.
               </p>
             </div>
           )}
           {reidResults && (
             <div className="fade-in-up" style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 4, borderBottom: '1px solid var(--border)' }}>
-              <h2 style={{ fontSize: 'clamp(18px, 2.5vw, 22px)', fontWeight: 800, margin: 0, lineHeight: 1.2 }}>Gallery matches</h2>
+              <h2 style={{ fontSize: 'clamp(18px, 2.5vw, 22px)', fontWeight: 800, margin: 0, lineHeight: 1.2 }}>Top matches</h2>
               {reidResults.matches?.length === 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
                   <span
@@ -933,7 +975,7 @@ export default function ReIDSearch() {
                       color: 'var(--text)',
                     }}
                   >
-                    Top {reidResults.matches?.length ?? 0} / {reidResults.gallery_total ?? '—'} in gallery
+                    Top {reidResults.matches?.length ?? 0} / {reidResults.gallery_total ?? '—'} indexed
                   </span>
                   {reidResults.query_dim != null && (
                     <span
@@ -1063,13 +1105,9 @@ export default function ReIDSearch() {
               {reidResults.matches?.length === 0 && (
                 <div className="card" style={{ padding: 56, textAlign: 'center' }}>
                   <p style={{ fontSize: 36, marginBottom: 14 }}>📭</p>
-                  <p style={{ fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>No matches or empty gallery</p>
+                  <p style={{ fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>No matches found in the index</p>
                   <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                    Add persons via the{' '}
-                    <a href="/reid-gallery" style={{ color: '#06b6d4', textDecoration: 'none' }}>
-                      Gallery page
-                    </a>
-                    .
+                    Try another query image or verify embeddings are available in your Re-ID index.
                   </p>
                 </div>
               )}

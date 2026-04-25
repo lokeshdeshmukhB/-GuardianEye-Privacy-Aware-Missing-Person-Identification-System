@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { FiShield, FiSearch, FiUsers, FiCpu, FiArrowRight, FiLayers, FiTarget, FiActivity } from 'react-icons/fi';
+import { FiShield, FiSearch, FiUsers, FiCpu, FiArrowRight, FiLayers, FiTarget } from 'react-icons/fi';
 import './Landing.css';
 
 const Landing = () => (
@@ -34,8 +34,8 @@ const Landing = () => (
         <span className="gradient-text-animated">with Multi-Model AI</span>
       </h1>
       <p className="hero-desc">
-        Three cutting-edge deep learning models — Person Re-ID, Pedestrian Attribute Recognition,
-        and Gait Analysis — unified in one powerful surveillance intelligence platform.
+        Person Re-ID and Pedestrian Attribute Recognition — unified with track-level fusion
+        for multi-camera surveillance intelligence.
       </p>
       <div className="hero-cta">
         <Link to="/login" className="cta-btn primary">
@@ -48,7 +48,7 @@ const Landing = () => (
 
       {/* Tech stack badges */}
       <div className="hero-tech">
-        {['PyTorch', 'OSNet', 'ResNet-50', 'GaitSet', 'FastAPI', 'React', 'MongoDB'].map(t => (
+        {['PyTorch', 'OSNet', 'ResNet-50', 'FastAPI', 'React', 'MongoDB'].map(t => (
           <span key={t} className="hero-tech__badge">{t}</span>
         ))}
       </div>
@@ -57,7 +57,7 @@ const Landing = () => (
     {/* Model Cards */}
     <section className="models-section">
       <h2 className="models-section__title">
-        <span className="gradient-text">Three Models, One Platform</span>
+        <span className="gradient-text">Core Models, One Platform</span>
       </h2>
       <p className="models-section__subtitle">
         Each model specializes in a unique dimension of person identification
@@ -69,9 +69,9 @@ const Landing = () => (
             title: 'Person Re-ID',
             model: 'OSNet x1.0',
             dataset: 'Market-1501',
-            desc: '512-dimensional feature embeddings with cosine similarity matching against a gallery of known persons.',
+            desc: '512-dimensional feature embeddings with cosine similarity matching against an indexed person database.',
             color: '#06b6d4',
-            features: ['512-dim embeddings', 'Top-K ranking', 'Gallery management', 'Real-time search']
+            features: ['512-dim embeddings', 'Top-K ranking', 'Database indexing', 'Real-time search']
           },
           {
             icon: <FiLayers />,
@@ -81,15 +81,6 @@ const Landing = () => (
             desc: '26 binary attribute predictions — demographics, clothing, accessories — from a single pedestrian image.',
             color: '#10b981',
             features: ['26 attributes', 'Multi-label classification', 'Confidence scoring', 'Structured output']
-          },
-          {
-            icon: <FiActivity />,
-            title: 'Gait Recognition',
-            model: 'SimpleGaitSet',
-            dataset: 'CASIA-B',
-            desc: 'Identify individuals from walking silhouette sequences — even when face or clothing is obscured.',
-            color: '#8b5cf6',
-            features: ['30-frame sequences', 'Silhouette analysis', 'Cross-view matching', 'Identity enrollment']
           }
         ].map(m => (
           <div key={m.title} className="model-card" style={{ '--mc': m.color }}>
@@ -122,9 +113,9 @@ const Landing = () => (
     {/* Features */}
     <section className="features">
       {[
-        { icon: <FiCpu />, title: 'Deep Learning Pipeline', desc: 'Three PyTorch models loaded at startup via FastAPI — zero-latency inference with GPU acceleration.' },
-        { icon: <FiSearch />, title: 'Intelligent Search', desc: 'Upload any surveillance image to instantly match against the gallery using state-of-the-art embeddings.' },
-        { icon: <FiUsers />, title: 'Gallery Management', desc: 'Enroll persons with photos, manage embeddings, and maintain a growing identification database.' },
+        { icon: <FiCpu />, title: 'Deep Learning Pipeline', desc: 'PyTorch models loaded at startup via FastAPI — low-latency inference with GPU acceleration.' },
+        { icon: <FiSearch />, title: 'Intelligent Search', desc: 'Upload any surveillance image to instantly match against indexed identities using state-of-the-art embeddings.' },
+        { icon: <FiUsers />, title: 'Identity Indexing', desc: 'Maintain person embeddings and metadata in a growing identification database for fast retrieval.' },
         { icon: <FiShield />, title: 'Privacy Compliant', desc: 'Role-based access control, full audit logs, and GDPR-aligned data handling built into every layer.' }
       ].map(f => (
         <div className="feature-card" key={f.title}>
@@ -140,8 +131,8 @@ const Landing = () => (
       {[
         { value: '512', label: 'Embedding Dimensions' },
         { value: '26', label: 'Recognized Attributes' },
-        { value: '30', label: 'Gait Frames Analyzed' },
-        { value: '3', label: 'ML Models Deployed' },
+        { value: '2', label: 'Core Identification Models' },
+        { value: '5', label: 'Top Match Candidates' },
       ].map(s => (
         <div key={s.label} className="landing-stat">
           <div className="landing-stat__value gradient-text">{s.value}</div>

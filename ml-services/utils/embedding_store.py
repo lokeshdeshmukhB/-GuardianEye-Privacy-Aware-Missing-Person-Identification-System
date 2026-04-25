@@ -34,6 +34,8 @@ _GAIT_EMB = os.path.join(EMBEDDINGS_DIR, "gait_embeddings.npy")
 
 _GAIT_PATH = os.path.join(EMBEDDINGS_DIR, "gait_paths.npy")
 
+# ── Bootstrap helpers ────────────────────────────────────────────────────────
+
 
 
 

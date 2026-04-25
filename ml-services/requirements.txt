@@ -7,3 +7,6 @@ numpy
 scikit-learn
 python-multipart
 aiofiles
+python-dotenv
+opencv-python-headless
+matplotlib

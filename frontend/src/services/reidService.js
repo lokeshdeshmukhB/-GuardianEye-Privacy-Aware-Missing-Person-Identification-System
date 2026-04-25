@@ -19,19 +19,7 @@ export const searchMultimodal = async (formData) => {
   return res.data;
 };
 
-export const getGallery = async () => {
-  const res = await api.get('/reid/gallery');
-  return res.data;
-};
-
-export const addPerson = async (formData) => {
-  const res = await api.post('/reid/gallery', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return res.data;
-};
-
-export const deleteGalleryPerson = async (personId) => {
-  const res = await api.delete(`/reid/gallery/${personId}`);
+export const getStats = async () => {
+  const res = await api.get('/stats');
   return res.data;
 };

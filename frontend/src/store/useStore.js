@@ -1,11 +1,6 @@
 import { create } from 'zustand';
 
 const useStore = create((set) => ({
-  // Gallery
-  gallery: [],
-  galleryTotal: 0,
-  setGallery: (data) => set({ gallery: data }),
-
   // Re-ID results
   reidResults: null,
   setReidResults: (results) => set({ reidResults: results }),
@@ -13,10 +8,6 @@ const useStore = create((set) => ({
   // Attribute results (aliased as attrResults for component convenience)
   attrResults: null,
   setAttrResults: (results) => set({ attrResults: results }),
-
-  // Gait results
-  gaitResults: null,
-  setGaitResults: (results) => set({ gaitResults: results }),
 
   // Dashboard stats
   stats: null,
@@ -28,7 +19,7 @@ const useStore = create((set) => ({
 
   // Reset all results
   resetResults: () =>
-    set({ reidResults: null, attrResults: null, gaitResults: null }),
+    set({ reidResults: null, attrResults: null }),
 }));
 
 export default useStore;
