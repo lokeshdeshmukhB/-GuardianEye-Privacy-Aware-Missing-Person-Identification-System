@@ -7,6 +7,17 @@
   padding: 32px;
   max-width: 1280px;
   margin: 0 auto;
+  --attr-row-bg-active: rgba(30, 41, 59, 0.06);
+  --attr-row-bg-hover: rgba(30, 41, 59, 0.1);
+  --attr-bar-track: rgba(30, 41, 59, 0.2);
+  --attr-bar-inactive: rgba(71, 85, 105, 0.55);
+}
+
+[data-theme="dark"] .attr-page {
+  --attr-row-bg-active: rgba(255, 255, 255, 0.02);
+  --attr-row-bg-hover: rgba(255, 255, 255, 0.04);
+  --attr-bar-track: rgba(255, 255, 255, 0.08);
+  --attr-bar-inactive: rgba(148, 163, 184, 0.35);
 }
 
 /* ── Header ── */
@@ -36,16 +47,24 @@
   font-size: 26px;
   font-weight: 800;
   letter-spacing: -0.5px;
+  color: var(--text);
+}
+
+.attr-header__sub {
+  font-size: 13px;
+  color: #334155;
+  margin-top: 3px;
+}
+
+[data-theme="dark"] .attr-header__title {
   background: linear-gradient(135deg, #e2e8f0 30%, #818cf8);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-.attr-header__sub {
-  font-size: 13px;
+[data-theme="dark"] .attr-header__sub {
   color: var(--text-muted);
-  margin-top: 3px;
 }
 
 .attr-header__pills {
@@ -447,11 +466,11 @@
 }
 
 .attr-row--active {
-  background: rgba(255,255,255,0.02);
+  background: var(--attr-row-bg-active);
 }
 
 .attr-row:hover {
-  background: rgba(255,255,255,0.04);
+  background: var(--attr-row-bg-hover);
 }
 
 .attr-row__icon {
@@ -480,7 +499,7 @@
 .attr-row__track {
   flex: 1;
   height: 6px;
-  background: rgba(255,255,255,0.06);
+  background: var(--attr-bar-track);
   border-radius: 999px;
   overflow: visible;
   position: relative;

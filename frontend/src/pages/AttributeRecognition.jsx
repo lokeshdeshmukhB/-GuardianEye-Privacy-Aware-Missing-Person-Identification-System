@@ -86,7 +86,7 @@ function AttrRow({ name, prob, color, glow }) {
       <div className="attr-row__track">
         <div
           className="attr-row__fill"
-          style={{ width: `${pct}%`, background: active ? color : 'rgba(255,255,255,0.1)', boxShadow: active ? `0 0 8px ${glow}` : 'none' }}
+          style={{ width: `${pct}%`, background: active ? color : 'var(--attr-bar-inactive)', boxShadow: active ? `0 0 8px ${glow}` : 'none' }}
         />
       </div>
       <span className="attr-row__pct" style={{ color: active ? color : 'var(--text-muted)' }}>{pct}%</span>

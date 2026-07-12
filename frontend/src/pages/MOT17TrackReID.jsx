@@ -1,5 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getMot17Tracks, matchMot17Track } from '../services/mot17TrackService';
+import { useTheme } from '../context/ThemeContext';
+
+const TOP_ATTR_PILL_THEME = {
+  light: {
+    background: 'rgba(190, 24, 93, 0.14)',
+    border: '1px solid rgba(157, 23, 77, 0.5)',
+    color: '#9f1239',
+  },
+  dark: {
+    background: 'rgba(244, 114, 182, 0.18)',
+    border: '1px solid rgba(244, 114, 182, 0.42)',
+    color: '#fecdd3',
+  },
+};
 
 const PLAY_MS = 130;
 
@@ -93,6 +107,8 @@ function TrackFilmstrip({ baseUrl, trackId, frames, label, playing, emptyHint, a
 }
 
 export default function MOT17TrackReID() {
+  const { isDark } = useTheme();
+  const topAttrPill = isDark ? TOP_ATTR_PILL_THEME.dark : TOP_ATTR_PILL_THEME.light;
   const [tracks, setTracks] = useState([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -394,9 +410,9 @@ export default function MOT17TrackReID() {
                         borderRadius: 8,
                         fontSize: 12,
                         fontWeight: 600,
-                        background: 'rgba(244,114,182,0.12)',
-                        border: '1px solid rgba(244,114,182,0.35)',
-                        color: '#fbcfe8',
+                        background: topAttrPill.background,
+                        border: topAttrPill.border,
+                        color: topAttrPill.color,
                         width: 'fit-content',
                         maxWidth: '100%',
                       }}

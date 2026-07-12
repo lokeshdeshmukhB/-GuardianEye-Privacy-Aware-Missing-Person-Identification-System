@@ -1,8 +1,11 @@
 import { Link } from 'react-router-dom';
-import { FiShield, FiSearch, FiUsers, FiCpu, FiArrowRight, FiLayers, FiTarget } from 'react-icons/fi';
+import { FiShield, FiSearch, FiUsers, FiCpu, FiArrowRight, FiLayers, FiTarget, FiMoon, FiSun } from 'react-icons/fi';
+import { useTheme } from '../context/ThemeContext';
 import './Landing.css';
 
-const Landing = () => (
+const Landing = () => {
+  const { isDark, toggleTheme } = useTheme();
+  return (
   <div className="landing noise-bg">
     {/* Ambient glow orbs */}
     <div className="landing-glow landing-glow--1" />
@@ -16,6 +19,9 @@ const Landing = () => (
         <span>GuardianEye</span>
       </div>
       <div className="landing-nav__actions">
+        <button type="button" className="landing-nav__link landing-nav__theme-btn" onClick={toggleTheme}>
+          {isDark ? <FiSun /> : <FiMoon />} {isDark ? 'Light' : 'Dark'}
+        </button>
         <Link to="/login" className="landing-nav__link">Sign In</Link>
         <Link to="/register" className="landing-nav__cta"><FiArrowRight /> Get Started</Link>
       </div>
@@ -151,6 +157,7 @@ const Landing = () => (
       <p className="landing-footer__copy">© {new Date().getFullYear()} GuardianEye. All rights reserved.</p>
     </footer>
   </div>
-);
+  );
+};
 
 export default Landing;

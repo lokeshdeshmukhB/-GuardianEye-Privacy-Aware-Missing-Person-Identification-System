@@ -16,7 +16,7 @@ import MOT17TrackReID from './pages/MOT17TrackReID';
 
 const Private = ({ children }) => {
   const { user, loading } = useAuth();
-  if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: '#fff' }}>Loading…</div>;
+  if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--text)' }}>Loading…</div>;
   return user ? children : <Navigate to="/login" replace />;
 };
 

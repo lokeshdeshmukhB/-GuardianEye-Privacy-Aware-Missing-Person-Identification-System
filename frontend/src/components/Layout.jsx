@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import {
-  FiShield, FiLogOut, FiMenu,
+  FiShield, FiLogOut, FiMenu, FiMoon, FiSun,
   FiUsers, FiActivity, FiTarget, FiLayers, FiFilm
 } from 'react-icons/fi';
 import './Layout.css';
 
 const Layout = () => {
   const { user, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(true);
 
@@ -71,6 +73,9 @@ const Layout = () => {
             <FiMenu />
           </button>
           <div className="topbar-right">
+            <button className="logout-btn" onClick={toggleTheme} type="button" title="Toggle theme">
+              {isDark ? <FiSun /> : <FiMoon />} {isDark ? 'Light' : 'Dark'}
+            </button>
             <span className="topbar-badge">🛡️ {user?.role === 'admin' ? 'Admin' : 'Officer'}</span>
             <button className="logout-btn" onClick={handleLogout}>
               <FiLogOut /> Logout
